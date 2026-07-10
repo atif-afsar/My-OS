@@ -1,27 +1,415 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
-import { Briefcase } from "lucide-react";
+import {
+  Briefcase,
+  CheckCircle,
+  Clock,
+  Plus,
+  Trash2,
+  Calendar,
+  Layers,
+  FileText,
+  Users,
+} from "lucide-react";
+
+interface Task {
+  id: string;
+  title: string;
+  status: "Todo" | "In Progress" | "Completed";
+  priority: "Low" | "Medium" | "High" | "Urgent";
+  dueDate: string;
+}
+
+interface Project {
+  id: string;
+  title: string;
+  description: string;
+  status: "Planning" | "In Progress" | "Completed";
+  progress: number;
+  taskCount: number;
+}
+
+interface Meeting {
+  id: string;
+  title: string;
+  date: string;
+  attendees: string;
+  notes: string;
+}
 
 export default function WorkPage() {
+  const [activeTab, setActiveTab] = useState<"tasks" | "projects" | "log" | "meetings">("tasks");
+
+  // Local state for Tasks
+  const [tasks, setTasks] = useState<Task[]>([
+    { id: "1", title: "Configure ESLint and formatting scripts", status: "Completed", priority: "Medium", dueDate: "2026-07-10" },
+    { id: "2", title: "Build AppShell and Navigation", status: "Completed", priority: "High", dueDate: "2026-07-11" },
+    { id: "3", title: "Design database schemas in Prisma", status: "In Progress", priority: "High", dueDate: "2026-07-12" },
+    { id: "4", title: "Implement Auth screens via Supabase", status: "Todo", priority: "Urgent", dueDate: "2026-07-15" },
+  ]);
+  const [newTaskTitle, setNewTaskTitle] = useState("");
+  const [newTaskPriority, setNewTaskPriority] = useState<Task["priority"]>("Medium");
+  const [taskFilter, setTaskFilter] = useState<Task["status"] | "All">("All");
+
+  // Local state for Projects
+  const [projects] = useState<Project[]>([
+    { id: "1", title: "BrandsWay Development", description: "Main landing page and customer portal", status: "In Progress", progress: 60, taskCount: 8 },
+    { id: "2", title: "Client Portal API", description: "Supabase backend functions and schemas", status: "Planning", progress: 20, taskCount: 15 },
+    { id: "3", title: "MyOS MVP", description: "Personal life operating system application", status: "In Progress", progress: 40, taskCount: 22 },
+  ]);
+
+  // Local state for Daily Log
+  const [logs, setLogs] = useState<string[]>([
+    "Completed the Phase 1 Foundation layout structures.",
+    "Integrated Tailwind CSS v4 variables with shadcn/ui components.",
+    "Created temporary setup to move file imports to root.",
+  ]);
+  const [newLogText, setNewLogText] = useState("");
+
+  // Local state for Meetings
+  const [meetings] = useState<Meeting[]>([
+    { id: "1", title: "BrandsWay Sync", date: "2026-07-10", attendees: "Client, Dev Team", notes: "Discussed landing page design feedback and deployment pipeline." },
+    { id: "2", title: "Database Architecture", date: "2026-07-08", attendees: "Self", notes: "Mapped out relationships between user, tasks, teaching lessons, and workouts." },
+  ]);
+
+  // Task Handlers
+  const handleAddTask = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTaskTitle.trim()) return;
+
+    const newTask: Task = {
+      id: Date.now().toString(),
+      title: newTaskTitle,
+      status: "Todo",
+      priority: newTaskPriority,
+      dueDate: new Date(Date.now() + 86400000).toISOString().split("T")[0],
+    };
+
+    setTasks([newTask, ...tasks]);
+    setNewTaskTitle("");
+  };
+
+  const handleToggleTaskStatus = (id: string) => {
+    setTasks(
+      tasks.map((t) => {
+        if (t.id === id) {
+          const nextStatusMap: Record<Task["status"], Task["status"]> = {
+            Todo: "In Progress",
+            "In Progress": "Completed",
+            Completed: "Todo",
+          };
+          return { ...t, status: nextStatusMap[t.status] };
+        }
+        return t;
+      })
+    );
+  };
+
+  const handleDeleteTask = (id: string) => {
+    setTasks(tasks.filter((t) => t.id !== id));
+  };
+
+  // Log Handlers
+  const handleAddLog = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newLogText.trim()) return;
+    setLogs([newLogText, ...logs]);
+    setNewLogText("");
+  };
+
+  const getPriorityColor = (p: Task["priority"]) => {
+    const colors = {
+      Low: "bg-slate-500/10 text-slate-400 border-slate-500/20",
+      Medium: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+      High: "bg-orange-500/10 text-orange-400 border-orange-500/20",
+      Urgent: "bg-red-500/10 text-red-400 border-red-500/20",
+    };
+    return colors[p];
+  };
+
   return (
-    <div className="flex-1 flex flex-col items-center justify-center py-12 text-center">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="max-w-md p-6 rounded-2xl border border-border bg-card flex flex-col items-center gap-4 shadow-xl"
-      >
-        <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center">
-          <Briefcase className="w-6 h-6" />
+    <div className="flex flex-col gap-6 py-4">
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center">
+          <Briefcase className="w-5 h-5" />
         </div>
-        <h2 className="text-xl font-bold text-foreground">Work Module</h2>
-        <p className="text-sm text-muted-foreground">
-          Manage client projects, daily logs, tasks, and meeting notes.
-        </p>
-        <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-secondary text-muted-foreground border border-border">
-          Coming in Phase 6
-        </span>
-      </motion.div>
+        <div>
+          <h2 className="text-xl font-bold text-foreground">Work Module</h2>
+          <p className="text-sm text-muted-foreground">Manage client work, tasks, and daily logs.</p>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex border-b border-border text-sm overflow-x-auto scrollbar-none gap-2">
+        {(
+          [
+            { id: "tasks", label: "Tasks", icon: CheckCircle },
+            { id: "projects", label: "Projects", icon: Layers },
+            { id: "log", label: "Daily Log", icon: FileText },
+            { id: "meetings", label: "Meetings", icon: Users },
+          ] as const
+        ).map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 px-4 py-3 border-b-2 font-medium transition-colors whitespace-nowrap cursor-pointer ${
+                isActive
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Icon className="w-4 h-4" />
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Tab Contents */}
+      <div className="flex flex-col gap-4">
+        {/* TASKS TAB */}
+        {activeTab === "tasks" && (
+          <motion.div
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex flex-col gap-4"
+          >
+            {/* Quick Add Task */}
+            <form onSubmit={handleAddTask} className="flex gap-2">
+              <input
+                type="text"
+                placeholder="Add a new work task..."
+                value={newTaskTitle}
+                onChange={(e) => setNewTaskTitle(e.target.value)}
+                className="flex-1 px-4 h-11 bg-card border border-border rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-primary text-foreground placeholder:text-muted-foreground"
+              />
+              <select
+                value={newTaskPriority}
+                onChange={(e) => setNewTaskPriority(e.target.value as Task["priority"])}
+                className="px-3 h-11 bg-card border border-border rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
+              >
+                <option value="Low">Low</option>
+                <option value="Medium">Medium</option>
+                <option value="High">High</option>
+                <option value="Urgent">Urgent</option>
+              </select>
+              <button
+                type="submit"
+                className="w-11 h-11 rounded-xl bg-primary text-primary-foreground flex items-center justify-center hover:scale-105 active:scale-95 transition-transform cursor-pointer"
+              >
+                <Plus className="w-5 h-5" />
+              </button>
+            </form>
+
+            {/* Filter Pills */}
+            <div className="flex gap-1.5 overflow-x-auto scrollbar-none">
+              {(["All", "Todo", "In Progress", "Completed"] as const).map((filter) => (
+                <button
+                  key={filter}
+                  onClick={() => setTaskFilter(filter)}
+                  className={`text-xs px-3 py-1.5 rounded-full border transition-all cursor-pointer ${
+                    (filter === "All" && taskFilter === "All") || taskFilter === filter
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-card text-muted-foreground border-border hover:text-foreground"
+                  }`}
+                >
+                  {filter}
+                </button>
+              ))}
+            </div>
+
+            {/* Task List */}
+            <div className="flex flex-col gap-2.5">
+              {tasks
+                .filter((t) => taskFilter === "All" || t.status === taskFilter)
+                .map((task) => (
+                  <div
+                    key={task.id}
+                    className="flex items-center justify-between p-4 rounded-xl border border-border bg-card hover:bg-secondary/50 transition-colors"
+                  >
+                    <div className="flex items-center gap-3.5 flex-1 min-w-0">
+                      <button
+                        onClick={() => handleToggleTaskStatus(task.id)}
+                        className={`w-5.5 h-5.5 rounded-md border flex items-center justify-center transition-colors cursor-pointer ${
+                          task.status === "Completed"
+                            ? "bg-primary border-primary text-primary-foreground"
+                            : "border-muted-foreground/40 bg-background"
+                        }`}
+                      >
+                        {task.status === "Completed" && <CheckCircle className="w-4 h-4 fill-current" />}
+                      </button>
+                      <div className="flex flex-col min-w-0">
+                        <span
+                          className={`text-sm font-medium truncate ${
+                            task.status === "Completed"
+                              ? "line-through text-muted-foreground"
+                              : "text-foreground"
+                          }`}
+                        >
+                          {task.title}
+                        </span>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span
+                            className={`text-[10px] px-2 py-0.5 rounded-full border font-semibold ${getPriorityColor(
+                              task.priority
+                            )}`}
+                          >
+                            {task.priority}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                            <Calendar className="w-3 h-3" />
+                            {task.dueDate}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleDeleteTask(task.id)}
+                      className="text-muted-foreground hover:text-destructive p-2 transition-colors cursor-pointer"
+                      aria-label="Delete task"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+            </div>
+          </motion.div>
+        )}
+
+        {/* PROJECTS TAB */}
+        {activeTab === "projects" && (
+          <motion.div
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex flex-col gap-3"
+          >
+            {projects.map((project) => (
+              <div
+                key={project.id}
+                className="p-5 rounded-2xl border border-border bg-card flex flex-col gap-3.5"
+              >
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="font-bold text-foreground">{project.title}</h3>
+                    <p className="text-xs text-muted-foreground mt-0.5">{project.description}</p>
+                  </div>
+                  <span
+                    className={`text-[10px] px-2 py-0.5 rounded-full font-bold border ${
+                      project.status === "Completed"
+                        ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                        : project.status === "In Progress"
+                        ? "bg-blue-500/10 text-blue-400 border-blue-500/20"
+                        : "bg-slate-500/10 text-slate-400 border-slate-500/20"
+                    }`}
+                  >
+                    {project.status}
+                  </span>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>Progress</span>
+                    <span>{project.progress}%</span>
+                  </div>
+                  <div className="w-full h-1.5 rounded-full bg-secondary overflow-hidden">
+                    <div
+                      className="h-full bg-primary rounded-full transition-all"
+                      style={{ width: `${project.progress}%` }}
+                    />
+                  </div>
+                  <span className="text-[10px] text-muted-foreground mt-1">
+                    {project.taskCount} total tasks associated
+                  </span>
+                </div>
+              </div>
+            ))}
+          </motion.div>
+        )}
+
+        {/* DAILY LOG TAB */}
+        {activeTab === "log" && (
+          <motion.div
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex flex-col gap-4"
+          >
+            {/* Quick Log Form */}
+            <form onSubmit={handleAddLog} className="flex gap-2">
+              <input
+                type="text"
+                placeholder="Log what you worked on today..."
+                value={newLogText}
+                onChange={(e) => setNewLogText(e.target.value)}
+                className="flex-1 px-4 h-11 bg-card border border-border rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-primary text-foreground placeholder:text-muted-foreground"
+              />
+              <button
+                type="submit"
+                className="px-4 h-11 rounded-xl bg-primary text-primary-foreground font-semibold text-sm hover:scale-105 active:scale-95 transition-transform flex items-center gap-1.5 cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                Log
+              </button>
+            </form>
+
+            {/* Daily Log List */}
+            <div className="rounded-2xl border border-border bg-card p-5 flex flex-col gap-4">
+              <h3 className="font-bold text-foreground">Today's Work Log</h3>
+              <div className="flex flex-col gap-3 relative before:absolute before:left-2 before:top-2 before:bottom-2 before:w-[2px] before:bg-border">
+                {logs.map((log, idx) => (
+                  <div key={idx} className="flex gap-4 items-start relative pl-6">
+                    <div className="absolute left-[3px] top-1.5 w-2 h-2 rounded-full bg-primary" />
+                    <p className="text-sm text-foreground leading-relaxed">{log}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* MEETINGS TAB */}
+        {activeTab === "meetings" && (
+          <motion.div
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex flex-col gap-3"
+          >
+            {meetings.map((meeting) => (
+              <div
+                key={meeting.id}
+                className="p-5 rounded-2xl border border-border bg-card flex flex-col gap-3"
+              >
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="font-bold text-foreground">{meeting.title}</h3>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                        <Calendar className="w-3 h-3" />
+                        {meeting.date}
+                      </span>
+                      <span className="text-xs text-muted-foreground">•</span>
+                      <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                        <Users className="w-3 h-3" />
+                        {meeting.attendees}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className="border-t border-border pt-3">
+                  <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider block">
+                    Notes
+                  </span>
+                  <p className="text-sm text-foreground mt-1 leading-relaxed">{meeting.notes}</p>
+                </div>
+              </div>
+            ))}
+          </motion.div>
+        )}
+      </div>
     </div>
   );
 }

@@ -1,0 +1,152 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String?
+  email     String?  @unique
+  avatar    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tasks     Task[]
+  settings  Settings?
+}
+
+model Project {
+  id          String    @id @default(uuid())
+  title       String
+  description String?
+  status      String    @default("Planning")
+  startDate   DateTime?
+  endDate     DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  tasks       Task[]
+}
+
+model Task {
+  id          String    @id @default(uuid())
+  title       String
+  description String?
+  status      String    @default("Todo")
+  priority    String    @default("Medium")
+  dueDate     DateTime?
+  category    String    @default("General")
+  completed   Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projectId   String?
+  project     Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
+}
+
+model Student {
+  id         String   @id @default(uuid())
+  name       String
+  className  String
+  school     String?
+  parentName String?
+  phone      String?
+  notes      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  lessons    Lesson[]
+}
+
+model Lesson {
+  id        String   @id @default(uuid())
+  studentId String
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  topic     String
+  homework  String?
+  remarks   String?
+  date      DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Workout {
+  id        String   @id @default(uuid())
+  exercise  String
+  sets      Int
+  reps      Int
+  weight    Float
+  duration  String?
+  notes     String?
+  date      DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model LearningTopic {
+  id          String         @id @default(uuid())
+  title       String
+  category    String
+  description String?
+  progress    Int            @default(0)
+  status      String         @default("Not Started")
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  notes       LearningNote[]
+}
+
+model LearningNote {
+  id          String        @id @default(uuid())
+  topicId     String
+  topic       LearningTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  title       String
+  content     String
+  tags        String[]
+  attachments String[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+model Bookmark {
+  id          String   @id @default(uuid())
+  title       String
+  url         String
+  category    String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Knowledge {
+  id        String   @id @default(uuid())
+  title     String
+  content   String
+  category  String
+  favorite  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model TimelineEvent {
+  id            String   @id @default(uuid())
+  type          String
+  title         String
+  description   String
+  referenceId   String?
+  referenceType String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Settings {
+  id            String   @id @default(uuid())
+  theme         String   @default("dark")
+  accentColor   String   @default("#5E0ED7")
+  language      String   @default("en")
+  notifications Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}

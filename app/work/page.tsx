@@ -4,23 +4,17 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import {
   Briefcase,
-  CheckCircle,
-  Clock,
   Plus,
-  Trash2,
   Calendar,
   Layers,
   FileText,
   Users,
+  CheckCircle,
 } from "lucide-react";
-
-interface Task {
-  id: string;
-  title: string;
-  status: "Todo" | "In Progress" | "Completed";
-  priority: "Low" | "Medium" | "High" | "Urgent";
-  dueDate: string;
-}
+import PageHeader from "@/components/common/PageHeader";
+import TaskCard, { Task } from "@/components/cards/TaskCard";
+import EmptyState from "@/components/common/EmptyState";
+import ProgressCard from "@/components/cards/ProgressCard";
 
 interface Project {
   id: string;
@@ -119,28 +113,17 @@ export default function WorkPage() {
     setNewLogText("");
   };
 
-  const getPriorityColor = (p: Task["priority"]) => {
-    const colors = {
-      Low: "bg-slate-500/10 text-slate-400 border-slate-500/20",
-      Medium: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-      High: "bg-orange-500/10 text-orange-400 border-orange-500/20",
-      Urgent: "bg-red-500/10 text-red-400 border-red-500/20",
-    };
-    return colors[p];
-  };
+  const filteredTasks = tasks.filter((t) => taskFilter === "All" || t.status === taskFilter);
 
   return (
     <div className="flex flex-col gap-6 py-4">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center">
-          <Briefcase className="w-5 h-5" />
-        </div>
-        <div>
-          <h2 className="text-xl font-bold text-foreground">Work Module</h2>
-          <p className="text-sm text-muted-foreground">Manage client work, tasks, and daily logs.</p>
-        </div>
-      </div>
+      <PageHeader
+        title="Work Module"
+        description="Manage client work, tasks, and daily logs."
+        icon={Briefcase}
+        iconColor="text-blue-500"
+      />
 
       {/* Tabs */}
       <div className="flex border-b border-border text-sm overflow-x-auto scrollbar-none gap-2">
@@ -226,58 +209,22 @@ export default function WorkPage() {
 
             {/* Task List */}
             <div className="flex flex-col gap-2.5">
-              {tasks
-                .filter((t) => taskFilter === "All" || t.status === taskFilter)
-                .map((task) => (
-                  <div
-                    key={task.id}
-                    className="flex items-center justify-between p-4 rounded-xl border border-border bg-card hover:bg-secondary/50 transition-colors"
-                  >
-                    <div className="flex items-center gap-3.5 flex-1 min-w-0">
-                      <button
-                        onClick={() => handleToggleTaskStatus(task.id)}
-                        className={`w-5.5 h-5.5 rounded-md border flex items-center justify-center transition-colors cursor-pointer ${
-                          task.status === "Completed"
-                            ? "bg-primary border-primary text-primary-foreground"
-                            : "border-muted-foreground/40 bg-background"
-                        }`}
-                      >
-                        {task.status === "Completed" && <CheckCircle className="w-4 h-4 fill-current" />}
-                      </button>
-                      <div className="flex flex-col min-w-0">
-                        <span
-                          className={`text-sm font-medium truncate ${
-                            task.status === "Completed"
-                              ? "line-through text-muted-foreground"
-                              : "text-foreground"
-                          }`}
-                        >
-                          {task.title}
-                        </span>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span
-                            className={`text-[10px] px-2 py-0.5 rounded-full border font-semibold ${getPriorityColor(
-                              task.priority
-                            )}`}
-                          >
-                            {task.priority}
-                          </span>
-                          <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                            <Calendar className="w-3 h-3" />
-                            {task.dueDate}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => handleDeleteTask(task.id)}
-                      className="text-muted-foreground hover:text-destructive p-2 transition-colors cursor-pointer"
-                      aria-label="Delete task"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
+              {filteredTasks.map((task) => (
+                <TaskCard
+                  key={task.id}
+                  task={task}
+                  onToggleStatus={handleToggleTaskStatus}
+                  onDelete={handleDeleteTask}
+                />
+              ))}
+
+              {filteredTasks.length === 0 && (
+                <EmptyState
+                  icon={CheckCircle}
+                  title="No Tasks Found"
+                  description="All tasks matching this filter are completed or cleared."
+                />
+              )}
             </div>
           </motion.div>
         )}
@@ -292,11 +239,11 @@ export default function WorkPage() {
             {projects.map((project) => (
               <div
                 key={project.id}
-                className="p-5 rounded-2xl border border-border bg-card flex flex-col gap-3.5"
+                className="p-5 rounded-2xl border border-border bg-card flex flex-col gap-3.5 shadow-sm"
               >
                 <div className="flex justify-between items-start">
                   <div>
-                    <h3 className="font-bold text-foreground">{project.title}</h3>
+                    <h3 className="font-bold text-foreground text-sm">{project.title}</h3>
                     <p className="text-xs text-muted-foreground mt-0.5">{project.description}</p>
                   </div>
                   <span
@@ -311,20 +258,13 @@ export default function WorkPage() {
                     {project.status}
                   </span>
                 </div>
-                <div className="flex flex-col gap-1.5">
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>Progress</span>
-                    <span>{project.progress}%</span>
-                  </div>
-                  <div className="w-full h-1.5 rounded-full bg-secondary overflow-hidden">
-                    <div
-                      className="h-full bg-primary rounded-full transition-all"
-                      style={{ width: `${project.progress}%` }}
-                    />
-                  </div>
-                  <span className="text-[10px] text-muted-foreground mt-1">
-                    {project.taskCount} total tasks associated
-                  </span>
+                <div className="border-t border-border/50 pt-3">
+                  <ProgressCard
+                    label="Project Progress"
+                    completed={Math.round((project.progress / 100) * project.taskCount)}
+                    total={project.taskCount}
+                    color="bg-primary"
+                  />
                 </div>
               </div>
             ))}

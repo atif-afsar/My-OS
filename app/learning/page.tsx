@@ -12,6 +12,10 @@ import {
   ExternalLink,
   Tag,
 } from "lucide-react";
+import PageHeader from "@/components/common/PageHeader";
+import LearningCard from "@/components/cards/LearningCard";
+import EmptyState from "@/components/common/EmptyState";
+import SectionHeader from "@/components/common/SectionHeader";
 
 interface LearningTopic {
   id: string;
@@ -152,15 +156,12 @@ export default function LearningPage() {
   return (
     <div className="flex flex-col gap-6 py-4">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-500 flex items-center justify-center">
-          <BookOpen className="w-5 h-5" />
-        </div>
-        <div>
-          <h2 className="text-xl font-bold text-foreground">Learning Module</h2>
-          <p className="text-sm text-muted-foreground">Store everything you learn and track study progress.</p>
-        </div>
-      </div>
+      <PageHeader
+        title="Learning Module"
+        description="Store everything you learn and track study progress."
+        icon={BookOpen}
+        iconColor="text-purple-500"
+      />
 
       {/* Tabs */}
       <div className="flex border-b border-border text-sm overflow-x-auto scrollbar-none gap-2">
@@ -206,7 +207,7 @@ export default function LearningPage() {
                 placeholder="New study subject / course title..."
                 value={newTopicTitle}
                 onChange={(e) => setNewTopicTitle(e.target.value)}
-                className="flex-1 px-4 h-11 bg-card border border-border rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
+                className="flex-1 px-4 h-11 bg-card border border-border rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-primary text-foreground placeholder:text-muted-foreground"
               />
               <select
                 value={newTopicCategory}
@@ -228,38 +229,22 @@ export default function LearningPage() {
             {/* Topic List */}
             <div className="flex flex-col gap-3">
               {topics.map((topic) => (
-                <div key={topic.id} className="p-4 rounded-xl border border-border bg-card flex flex-col gap-3 shadow-sm">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h4 className="font-bold text-foreground text-sm">{topic.title}</h4>
-                      <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider block mt-0.5">{topic.category}</span>
-                    </div>
-                    <span
-                      className={`text-[10px] px-2 py-0.5 rounded-full font-bold border ${
-                        topic.status === "Mastered"
-                          ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                          : topic.status === "Learning"
-                          ? "bg-purple-500/10 text-purple-400 border-purple-500/20"
-                          : "bg-slate-500/10 text-slate-400 border-slate-500/20"
-                      }`}
-                    >
-                      {topic.status}
-                    </span>
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>Progress</span>
-                      <span>{topic.progress}%</span>
-                    </div>
-                    <div className="w-full h-1.5 rounded-full bg-secondary overflow-hidden">
-                      <div
-                        className="h-full bg-primary rounded-full transition-all"
-                        style={{ width: `${topic.progress}%` }}
-                      />
-                    </div>
-                  </div>
-                </div>
+                <LearningCard
+                  key={topic.id}
+                  title={topic.title}
+                  category={topic.category}
+                  progress={topic.progress}
+                  status={topic.status}
+                />
               ))}
+
+              {topics.length === 0 && (
+                <EmptyState
+                  icon={FolderOpen}
+                  title="No Subjects Registered"
+                  description="Register study subjects or courses to begin tracking."
+                />
+              )}
             </div>
           </motion.div>
         )}
@@ -280,13 +265,13 @@ export default function LearningPage() {
                   placeholder="Note Title"
                   value={newNoteTitle}
                   onChange={(e) => setNewNoteTitle(e.target.value)}
-                  className="px-3 h-10 bg-background border border-border rounded-lg text-sm focus:outline-none"
+                  className="px-3 h-10 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
                   required
                 />
                 <select
                   value={selectedTopic}
                   onChange={(e) => setSelectedTopic(e.target.value)}
-                  className="px-3 h-10 bg-background border border-border rounded-lg text-sm focus:outline-none"
+                  className="px-3 h-10 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
                 >
                   <option value="">Select Topic Link</option>
                   {topics.map((t) => (
@@ -300,7 +285,7 @@ export default function LearningPage() {
                 placeholder="Write study notes (Markdown supported)..."
                 value={newNoteContent}
                 onChange={(e) => setNewNoteContent(e.target.value)}
-                className="px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none min-h-[96px]"
+                className="px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary text-foreground min-h-[96px]"
                 required
               />
               <button type="submit" className="h-10 bg-primary text-primary-foreground font-semibold text-sm rounded-lg hover:bg-primary/95 transition-colors cursor-pointer flex items-center justify-center gap-1.5">
@@ -316,7 +301,7 @@ export default function LearningPage() {
                     <span className="text-[10px] text-primary font-bold uppercase tracking-wider block">{note.topicTitle}</span>
                     <h4 className="font-bold text-foreground mt-0.5 text-base">{note.title}</h4>
                   </div>
-                  <p className="text-sm text-foreground/90 leading-relaxed bg-background/30 p-3 rounded-xl border border-border/50">
+                  <p className="text-sm text-foreground/90 leading-relaxed bg-background/20 p-3.5 rounded-xl border border-border/50">
                     {note.content}
                   </p>
                   <div className="flex gap-1.5 mt-1">
@@ -329,6 +314,14 @@ export default function LearningPage() {
                   </div>
                 </div>
               ))}
+
+              {notes.length === 0 && (
+                <EmptyState
+                  icon={FileText}
+                  title="No Notes Logged"
+                  description="Capture and record study observations here."
+                />
+              )}
             </div>
           </motion.div>
         )}
@@ -349,7 +342,7 @@ export default function LearningPage() {
                   placeholder="Resource / Page Title"
                   value={newBookmarkTitle}
                   onChange={(e) => setNewBookmarkTitle(e.target.value)}
-                  className="px-3 h-10 bg-background border border-border rounded-lg text-sm focus:outline-none"
+                  className="px-3 h-10 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
                   required
                 />
                 <input
@@ -357,7 +350,7 @@ export default function LearningPage() {
                   placeholder="https://..."
                   value={newBookmarkUrl}
                   onChange={(e) => setNewBookmarkUrl(e.target.value)}
-                  className="px-3 h-10 bg-background border border-border rounded-lg text-sm focus:outline-none"
+                  className="px-3 h-10 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
                   required
                 />
               </div>
@@ -366,7 +359,7 @@ export default function LearningPage() {
                 placeholder="Description summary..."
                 value={newBookmarkDesc}
                 onChange={(e) => setNewBookmarkDesc(e.target.value)}
-                className="px-3 h-10 bg-background border border-border rounded-lg text-sm focus:outline-none"
+                className="px-3 h-10 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
               />
               <button type="submit" className="h-10 bg-primary text-primary-foreground font-semibold text-sm rounded-lg hover:bg-primary/95 transition-colors cursor-pointer flex items-center justify-center gap-1.5">
                 <Plus className="w-4 h-4" /> Add Bookmark URL
@@ -406,6 +399,14 @@ export default function LearningPage() {
                   </div>
                 </div>
               ))}
+
+              {bookmarks.length === 0 && (
+                <EmptyState
+                  icon={LinkIcon}
+                  title="No Bookmarks Saved"
+                  description="Save references, document URLs, and articles here."
+                />
+              )}
             </div>
           </motion.div>
         )}

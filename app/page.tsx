@@ -1,7 +1,10 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Play, CheckCircle, Clock, BookOpen, Dumbbell, Briefcase } from "lucide-react";
+import { Play, Clock, CheckCircle } from "lucide-react";
+import ProgressCard from "@/components/cards/ProgressCard";
+import TimelineCard from "@/components/cards/TimelineCard";
+import SectionHeader from "@/components/common/SectionHeader";
 
 export default function DashboardPage() {
   const progressItems = [
@@ -12,7 +15,7 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div className="flex flex-col gap-6 py-4">
+    <div className="flex flex-col gap-5 py-4">
       {/* Current Focus Widget */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
@@ -43,10 +46,10 @@ export default function DashboardPage() {
           transition={{ duration: 0.3, delay: 0.1 }}
           className="rounded-2xl border border-border bg-card p-5 flex flex-col gap-4"
         >
-          <div className="flex items-center justify-between">
-            <h3 className="font-bold text-foreground">Today's Schedule</h3>
-            <Clock className="w-4 h-4 text-muted-foreground" />
-          </div>
+          <SectionHeader
+            title="Today's Schedule"
+            action={<Clock className="w-4 h-4 text-muted-foreground" />}
+          />
           <div className="flex flex-col gap-3">
             {[
               { time: "9:30 AM", label: "BrandsWay Development", type: "Work" },
@@ -74,30 +77,20 @@ export default function DashboardPage() {
           transition={{ duration: 0.3, delay: 0.2 }}
           className="rounded-2xl border border-border bg-card p-5 flex flex-col gap-4"
         >
-          <div className="flex items-center justify-between">
-            <h3 className="font-bold text-foreground">Today's Progress</h3>
-            <CheckCircle className="w-4 h-4 text-muted-foreground" />
-          </div>
+          <SectionHeader
+            title="Today's Progress"
+            action={<CheckCircle className="w-4 h-4 text-muted-foreground" />}
+          />
           <div className="flex flex-col gap-4">
-            {progressItems.map((item, idx) => {
-              const pct = (item.completed / item.total) * 100;
-              return (
-                <div key={idx} className="flex flex-col gap-1.5">
-                  <div className="flex justify-between text-sm">
-                    <span className="font-medium text-foreground">{item.label}</span>
-                    <span className="text-muted-foreground">
-                      {item.completed}/{item.total} tasks
-                    </span>
-                  </div>
-                  <div className="w-full h-2 rounded-full bg-secondary overflow-hidden">
-                    <div
-                      className={`h-full ${item.color} rounded-full transition-all`}
-                      style={{ width: `${pct}%` }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
+            {progressItems.map((item, idx) => (
+              <ProgressCard
+                key={idx}
+                label={item.label}
+                completed={item.completed}
+                total={item.total}
+                color={item.color}
+              />
+            ))}
           </div>
         </motion.div>
       </div>
@@ -107,43 +100,28 @@ export default function DashboardPage() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, delay: 0.3 }}
-        className="rounded-2xl border border-border bg-card p-5 flex flex-col gap-4"
+        className="flex flex-col gap-3"
       >
-        <h3 className="font-bold text-foreground">Recent Activity</h3>
-        <div className="flex flex-col gap-3">
-          {[
-            {
-              icon: Briefcase,
-              label: "Completed task 'Setup ESLint'",
-              time: "10 mins ago",
-              color: "text-blue-500 bg-blue-500/10",
-            },
-            {
-              icon: BookOpen,
-              label: "Added bookmark 'Tailwind CSS v4 Documentation'",
-              time: "1 hour ago",
-              color: "text-purple-500 bg-purple-500/10",
-            },
-            {
-              icon: Dumbbell,
-              label: "Logged workout 'Push Day Routine'",
-              time: "Yesterday",
-              color: "text-orange-500 bg-orange-500/10",
-            },
-          ].map((item, idx) => {
-            const Icon = item.icon;
-            return (
-              <div key={idx} className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${item.color}`}>
-                    <Icon className="w-4 h-4" />
-                  </div>
-                  <span className="text-sm text-foreground font-medium">{item.label}</span>
-                </div>
-                <span className="text-xs text-muted-foreground">{item.time}</span>
-              </div>
-            );
-          })}
+        <SectionHeader title="Recent Activity" />
+        <div className="flex flex-col gap-2.5">
+          <TimelineCard
+            type="Work"
+            title="Completed task 'Setup ESLint'"
+            description="Office Work • Verified linting compilation scripts"
+            time="10 mins ago"
+          />
+          <TimelineCard
+            type="Learning"
+            title="Added bookmark 'Tailwind CSS v4 Documentation'"
+            description="Learning Resource • Saved documentation links"
+            time="1 hour ago"
+          />
+          <TimelineCard
+            type="Gym"
+            title="Logged workout 'Push Day Routine'"
+            description="Logged workout sets: chest, shoulder, triceps lifts"
+            time="Yesterday"
+          />
         </div>
       </motion.div>
     </div>

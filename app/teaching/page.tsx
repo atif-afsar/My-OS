@@ -12,8 +12,10 @@ import {
   Plus,
   Phone,
   School,
-  Award,
 } from "lucide-react";
+import PageHeader from "@/components/common/PageHeader";
+import EmptyState from "@/components/common/EmptyState";
+import SectionHeader from "@/components/common/SectionHeader";
 
 interface Student {
   id: string;
@@ -147,15 +149,12 @@ export default function TeachingPage() {
   return (
     <div className="flex flex-col gap-6 py-4">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
-          <GraduationCap className="w-5 h-5" />
-        </div>
-        <div>
-          <h2 className="text-xl font-bold text-foreground">Teaching Module</h2>
-          <p className="text-sm text-muted-foreground">Manage tuition students, lessons, and attendance.</p>
-        </div>
-      </div>
+      <PageHeader
+        title="Teaching Module"
+        description="Manage tuition students, lessons, and attendance."
+        icon={GraduationCap}
+        iconColor="text-emerald-500"
+      />
 
       {/* Tabs */}
       <div className="flex border-b border-border text-sm overflow-x-auto scrollbar-none gap-2">
@@ -194,16 +193,18 @@ export default function TeachingPage() {
             animate={{ opacity: 1, y: 0 }}
             className="flex flex-col gap-4"
           >
-            <div className="flex justify-between items-center">
-              <h3 className="font-bold text-foreground">Active Class List</h3>
-              <button
-                onClick={() => setShowAddForm(!showAddForm)}
-                className="text-xs px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20 transition-all flex items-center gap-1 cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                Add Student
-              </button>
-            </div>
+            <SectionHeader
+              title="Active Class List"
+              action={
+                <button
+                  onClick={() => setShowAddForm(!showAddForm)}
+                  className="text-xs px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20 transition-all flex items-center gap-1 cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Add Student
+                </button>
+              }
+            />
 
             {showAddForm && (
               <form onSubmit={handleAddStudent} className="p-4 border border-border bg-card rounded-2xl flex flex-col gap-3">
@@ -269,6 +270,14 @@ export default function TeachingPage() {
                   </div>
                 </div>
               ))}
+
+              {students.length === 0 && (
+                <EmptyState
+                  icon={Users}
+                  title="No Students Registered"
+                  description="Register your tuition students here to manage logs."
+                />
+              )}
             </div>
           </motion.div>
         )}
@@ -327,7 +336,7 @@ export default function TeachingPage() {
             {/* Lesson Log Records */}
             <div className="flex flex-col gap-3">
               {lessons.map((lesson) => (
-                <div key={lesson.id} className="p-5 rounded-2xl border border-border bg-card flex flex-col gap-3.5">
+                <div key={lesson.id} className="p-5 rounded-2xl border border-border bg-card flex flex-col gap-3.5 shadow-sm">
                   <div className="flex justify-between items-start">
                     <div>
                       <h4 className="font-bold text-foreground">{lesson.studentName}</h4>
@@ -358,6 +367,14 @@ export default function TeachingPage() {
                   </div>
                 </div>
               ))}
+
+              {lessons.length === 0 && (
+                <EmptyState
+                  icon={BookOpen}
+                  title="No Lessons Logged"
+                  description="Log details here for classes taught to students."
+                />
+              )}
             </div>
           </motion.div>
         )}
@@ -369,11 +386,11 @@ export default function TeachingPage() {
             animate={{ opacity: 1, y: 0 }}
             className="flex flex-col gap-4"
           >
-            <div className="rounded-2xl border border-border bg-card p-5 flex flex-col gap-4">
-              <div className="flex items-center justify-between">
-                <h3 className="font-bold text-foreground">Tuition Attendance Sheet</h3>
-                <span className="text-xs text-muted-foreground">Today: {new Date().toISOString().split("T")[0]}</span>
-              </div>
+            <div className="rounded-2xl border border-border bg-card p-5 flex flex-col gap-4 shadow-sm">
+              <SectionHeader
+                title="Tuition Attendance Sheet"
+                action={<span className="text-xs text-muted-foreground">Today: {new Date().toISOString().split("T")[0]}</span>}
+              />
 
               <div className="flex flex-col border-t border-border divide-y divide-border">
                 {students.map((student) => (

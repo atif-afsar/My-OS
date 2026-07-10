@@ -7,17 +7,14 @@ import {
   Calendar,
   CheckCircle,
   Plus,
-  Trash2,
   List,
   Flame,
   Award,
 } from "lucide-react";
-
-interface Exercise {
-  name: string;
-  targetSets: number;
-  targetReps: number;
-}
+import PageHeader from "@/components/common/PageHeader";
+import WorkoutCard, { Exercise } from "@/components/cards/WorkoutCard";
+import EmptyState from "@/components/common/EmptyState";
+import SectionHeader from "@/components/common/SectionHeader";
 
 interface Routine {
   id: string;
@@ -166,15 +163,12 @@ export default function GymPage() {
   return (
     <div className="flex flex-col gap-6 py-4">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-orange-500/10 text-orange-500 flex items-center justify-center">
-          <Dumbbell className="w-5 h-5" />
-        </div>
-        <div>
-          <h2 className="text-xl font-bold text-foreground">Gym Module</h2>
-          <p className="text-sm text-muted-foreground">Track routines, workouts, sets, and personal records.</p>
-        </div>
-      </div>
+      <PageHeader
+        title="Gym Module"
+        description="Track routines, workouts, sets, and personal records."
+        icon={Dumbbell}
+        iconColor="text-orange-500"
+      />
 
       {/* Tabs */}
       <div className="flex border-b border-border text-sm overflow-x-auto scrollbar-none gap-2">
@@ -215,35 +209,22 @@ export default function GymPage() {
           >
             <div className="flex flex-col gap-3">
               {routines.map((routine) => (
-                <div key={routine.id} className="p-5 rounded-2xl border border-border bg-card flex flex-col gap-4 shadow-sm">
-                  <div>
-                    <h4 className="font-bold text-foreground text-base">{routine.name}</h4>
-                    <p className="text-xs text-muted-foreground mt-0.5">{routine.description}</p>
-                  </div>
-
-                  <div className="border-t border-border pt-3.5">
-                    <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider block mb-2">Exercises Included</span>
-                    <div className="flex flex-col gap-2">
-                      {routine.exercises.map((ex, idx) => (
-                        <div key={idx} className="flex justify-between items-center text-sm">
-                          <span className="text-foreground/90 font-medium">{ex.name}</span>
-                          <span className="text-xs text-muted-foreground bg-secondary/40 px-2 py-0.5 rounded-md border border-border">
-                            {ex.targetSets} sets × {ex.targetReps} reps
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={() => handleStartWorkout(routine)}
-                    className="w-full h-10 bg-primary text-primary-foreground font-semibold text-sm rounded-lg hover:bg-primary/95 transition-all cursor-pointer flex items-center justify-center gap-1.5 mt-1"
-                  >
-                    <Flame className="w-4 h-4 fill-current" />
-                    Start This Workout
-                  </button>
-                </div>
+                <WorkoutCard
+                  key={routine.id}
+                  name={routine.name}
+                  description={routine.description}
+                  exercises={routine.exercises}
+                  onStart={() => handleStartWorkout(routine)}
+                />
               ))}
+
+              {routines.length === 0 && (
+                <EmptyState
+                  icon={Dumbbell}
+                  title="No Routines Created"
+                  description="Set up workout routines to start tracking sets."
+                />
+              )}
             </div>
           </motion.div>
         )}
@@ -256,19 +237,19 @@ export default function GymPage() {
             className="flex flex-col gap-4"
           >
             {!selectedRoutine ? (
-              <div className="text-center py-12 border border-border bg-card rounded-2xl p-6 flex flex-col items-center gap-3">
-                <Dumbbell className="w-10 h-10 text-muted-foreground" />
-                <h4 className="font-bold text-foreground text-sm">No Active Workout Session</h4>
-                <p className="text-xs text-muted-foreground max-w-xs">
-                  Choose a routine from the 'Routines' tab and start your workout to log sets in real-time.
-                </p>
-                <button
-                  onClick={() => setActiveTab("routines")}
-                  className="px-4 h-9 bg-primary text-primary-foreground font-semibold text-xs rounded-lg hover:bg-primary/95 transition-all cursor-pointer mt-1"
-                >
-                  Browse Routines
-                </button>
-              </div>
+              <EmptyState
+                icon={Dumbbell}
+                title="No Active Workout Session"
+                description="Choose a routine from the 'Routines' tab and start your workout to log sets in real-time."
+                action={
+                  <button
+                    onClick={() => setActiveTab("routines")}
+                    className="px-4 h-9 bg-primary text-primary-foreground font-semibold text-xs rounded-lg hover:bg-primary/95 transition-all cursor-pointer mt-1"
+                  >
+                    Browse Routines
+                  </button>
+                }
+              />
             ) : (
               <div className="flex flex-col gap-4">
                 {/* Active Session Header */}
@@ -319,7 +300,7 @@ export default function GymPage() {
 
                       {/* Sets list */}
                       <div className="flex flex-col gap-2 mt-1">
-                        {exSets.map((set, sIdx) => (
+                        {exSets.map((set) => (
                           <div key={set.id} className="flex justify-between items-center bg-background/40 p-2.5 rounded-lg border border-border/50 text-xs">
                             <span className="font-semibold text-muted-foreground">Set {set.setIndex}</span>
                             <span className="text-foreground/90 font-medium">
@@ -383,6 +364,14 @@ export default function GymPage() {
                 </span>
               </div>
             ))}
+
+            {history.length === 0 && (
+              <EmptyState
+                icon={Calendar}
+                title="No History Logs"
+                description="Your past workout logs will appear here once completed."
+              />
+            )}
           </motion.div>
         )}
       </div>

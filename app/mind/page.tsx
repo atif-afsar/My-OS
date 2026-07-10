@@ -5,15 +5,16 @@ import { motion } from "framer-motion";
 import {
   Brain,
   Search,
-  Star,
   Plus,
-  Tag,
   BookOpen,
   Quote,
   Compass,
   Heart,
-  ChevronRight,
 } from "lucide-react";
+import PageHeader from "@/components/common/PageHeader";
+import NoteCard from "@/components/cards/NoteCard";
+import EmptyState from "@/components/common/EmptyState";
+import SectionHeader from "@/components/common/SectionHeader";
 
 interface KnowledgeItem {
   id: string;
@@ -61,7 +62,7 @@ export default function MindPage() {
     {
       id: "4",
       title: "Marcus Aurelius on Morning Perspective",
-      content: "When you arise in the morning, think of what a precious privilege it is to be alive—to breathe, to think, to enjoy, to love.",
+      content: "When you arise in the morning, think of what a privilege it is to be alive—to breathe, to think, to enjoy, to love.",
       category: "Quotes",
       tags: ["Stoicism", "MarcusAurelius", "Morning"],
       favorite: false,
@@ -110,6 +111,10 @@ export default function MindPage() {
     setShowAddForm(false);
   };
 
+  const handleDeleteItem = (id: string) => {
+    setItems(items.filter((i) => i.id !== id));
+  };
+
   // Categories with Icons
   const categories: { label: KnowledgeItem["category"] | "All"; icon: any; color: string }[] = [
     { label: "All", icon: Compass, color: "text-slate-400" },
@@ -155,15 +160,12 @@ export default function MindPage() {
   return (
     <div className="flex flex-col gap-6 py-4">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-pink-500/10 text-pink-500 flex items-center justify-center">
-          <Brain className="w-5 h-5" />
-        </div>
-        <div>
-          <h2 className="text-xl font-bold text-foreground">Mind Module</h2>
-          <p className="text-sm text-muted-foreground">Personal second brain, philosophy notes, and reflections.</p>
-        </div>
-      </div>
+      <PageHeader
+        title="Mind Module"
+        description="Personal second brain, philosophy notes, and reflections."
+        icon={Brain}
+        iconColor="text-pink-500"
+      />
 
       {/* Search Input */}
       <div className="relative">
@@ -173,7 +175,7 @@ export default function MindPage() {
           placeholder="Search philosophy, quotes, reflection logs..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-10 pr-4 h-11 bg-card border border-border rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
+          className="w-full pl-10 pr-4 h-11 bg-card border border-border rounded-xl text-sm focus:outline-none focus:ring-1 focus:ring-primary text-foreground placeholder:text-muted-foreground"
         />
       </div>
 
@@ -202,18 +204,23 @@ export default function MindPage() {
       {/* Dynamic Content area */}
       <div className="flex flex-col gap-4">
         {/* Toggle Form / Header */}
-        <div className="flex justify-between items-center">
-          <h3 className="font-bold text-foreground text-sm">
-            {selectedCategory === "All" ? "All Notes" : `${selectedCategory} Collection`} ({filteredItems.length})
-          </h3>
-          <button
-            onClick={() => setShowAddForm(!showAddForm)}
-            className="text-xs px-3 py-1.5 rounded-lg bg-pink-500/10 text-pink-400 hover:bg-pink-500/20 border border-pink-500/20 transition-all flex items-center gap-1 cursor-pointer"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            Add Knowledge
-          </button>
-        </div>
+        <SectionHeader
+          title={selectedCategory === "All" ? "All Notes" : `${selectedCategory} Collection`}
+          badge={
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-secondary text-muted-foreground border border-border">
+              {filteredItems.length}
+            </span>
+          }
+          action={
+            <button
+              onClick={() => setShowAddForm(!showAddForm)}
+              className="text-xs px-3 py-1.5 rounded-lg bg-pink-500/10 text-pink-400 hover:bg-pink-500/20 border border-pink-500/20 transition-all flex items-center gap-1 cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Add Knowledge
+            </button>
+          }
+        />
 
         {/* Add Form */}
         {showAddForm && (
@@ -223,14 +230,14 @@ export default function MindPage() {
               placeholder="Title (e.g. Meditations Book 1)"
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
-              className="px-3 h-10 bg-background border border-border rounded-lg text-sm focus:outline-none"
+              className="px-3 h-10 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
               required
             />
             <div className="flex gap-2">
               <select
                 value={newCategory}
                 onChange={(e) => setNewCategory(e.target.value as KnowledgeItem["category"])}
-                className="flex-1 px-3 h-10 bg-background border border-border rounded-lg text-sm focus:outline-none text-foreground"
+                className="flex-1 px-3 h-10 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
               >
                 <option value="Philosophy">Philosophy</option>
                 <option value="Ideas">Ideas</option>
@@ -243,7 +250,7 @@ export default function MindPage() {
               placeholder="Write content notes (Markdown format)..."
               value={newContent}
               onChange={(e) => setNewContent(e.target.value)}
-              className="px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none min-h-[96px]"
+              className="px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary text-foreground min-h-[96px]"
               required
             />
             <button type="submit" className="h-10 bg-primary text-primary-foreground font-semibold text-sm rounded-lg hover:bg-primary/95 transition-colors cursor-pointer flex items-center justify-center gap-1.5">
@@ -253,38 +260,27 @@ export default function MindPage() {
         )}
 
         {/* Knowledge Items Grid */}
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3.5">
           {filteredItems.map((item) => (
-            <div key={item.id} className="p-5 rounded-2xl border border-border bg-card flex flex-col gap-3 shadow-md relative group">
-              <div className="flex justify-between items-start">
-                <div>
-                  <span className="text-[10px] text-pink-400 font-bold uppercase tracking-wider block">{item.category}</span>
-                  <h4 className="font-bold text-foreground mt-0.5 text-base">{item.title}</h4>
-                </div>
-                <button
-                  onClick={() => handleToggleFavorite(item.id)}
-                  className={`p-1.5 rounded-full hover:bg-secondary transition-colors cursor-pointer ${
-                    item.favorite ? "text-amber-400" : "text-muted-foreground"
-                  }`}
-                  aria-label="Toggle favorite"
-                >
-                  <Star className={`w-4 h-4 ${item.favorite ? "fill-current" : ""}`} />
-                </button>
-              </div>
-
-              <p className="text-sm text-foreground/90 leading-relaxed font-sans bg-background/20 p-4 rounded-xl border border-border/50">
-                {item.content}
-              </p>
-
-              <div className="flex justify-between items-center text-[10px] text-muted-foreground border-t border-border/30 pt-3">
-                <span className="flex items-center gap-1">
-                  <Tag className="w-3 h-3 text-slate-400" />
-                  {item.tags.join(", ")}
-                </span>
-                <span>{item.date}</span>
-              </div>
-            </div>
+            <NoteCard
+              key={item.id}
+              category={item.category}
+              title={item.title}
+              content={item.content}
+              tags={item.tags}
+              favorite={item.favorite}
+              onToggleFavorite={() => handleToggleFavorite(item.id)}
+              onDelete={() => handleDeleteItem(item.id)}
+            />
           ))}
+
+          {filteredItems.length === 0 && (
+            <EmptyState
+              icon={Brain}
+              title="No Knowledge Notes Found"
+              description="Record philosophy notes, book quotes, or daily reflections to build your brain."
+            />
+          )}
         </div>
       </div>
     </div>

@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Clock, Filter } from "lucide-react";
 import PageHeader from "@/components/common/PageHeader";
 import TimelineCard from "@/components/cards/TimelineCard";
 import EmptyState from "@/components/common/EmptyState";
+import LoadingSkeleton from "@/components/common/LoadingSkeleton";
 
 interface TimelineEvent {
   id: string;
@@ -18,73 +19,70 @@ interface TimelineEvent {
 
 export default function TimelinePage() {
   const [filterType, setFilterType] = useState<TimelineEvent["type"] | "All">("All");
+  const [loading, setLoading] = useState(true);
 
-  // Local state for Timeline events
-  const [events] = useState<TimelineEvent[]>([
-    // Today
-    {
-      id: "1",
-      type: "Work",
-      title: "Completed Task",
-      description: "Build AppShell and Navigation",
-      time: "10:15 AM",
-      date: "Today",
-    },
-    {
-      id: "2",
-      type: "Learning",
-      title: "Saved Bookmark",
-      description: "Added Next.js Turbopack Config Docs",
-      time: "9:30 AM",
-      date: "Today",
-    },
-    // Yesterday
-    {
-      id: "3",
-      type: "Gym",
-      title: "Logged Workout",
-      description: "Push Day Routine (4 exercises, 13 sets logged)",
-      time: "6:15 PM",
-      date: "Yesterday",
-    },
-    {
-      id: "4",
-      type: "Work",
-      title: "Logged Daily summary",
-      description: "Completed the Phase 1 Foundation layout structures.",
-      time: "5:30 PM",
-      date: "Yesterday",
-    },
-    {
-      id: "5",
-      type: "Teaching",
-      title: "Logged Lesson",
-      description: "Zayan Khan (Maths) - Introduction to Quadratic Equations",
-      time: "4:00 PM",
-      date: "Yesterday",
-    },
-    // July 09, 2026
-    {
-      id: "6",
-      type: "Mind",
-      title: "Saved Philosophy Note",
-      description: "Amor Fati — Loving One's Fate",
-      time: "9:00 PM",
-      date: "July 09, 2026",
-    },
-    {
-      id: "7",
-      type: "Learning",
-      title: "Created Study Note",
-      description: "React Server Components vs Client Components in Next.js 15",
-      time: "11:30 AM",
-      date: "July 09, 2026",
-    },
-  ]);
+  // States
+  const [events, setEvents] = useState<TimelineEvent[]>([]);
 
-  // Group events by date
+  // Load Data
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const res = await fetch("/api/timeline");
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          setEvents(
+            data.map((e: any) => {
+              const dt = new Date(e.createdAt);
+              const dateString = dt.toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              });
+              const timeString = dt.toLocaleTimeString("en-US", {
+                hour: "2-digit",
+                minute: "2-digit",
+              });
+              
+              // Map dynamic date labels
+              const todayStr = new Date().toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              });
+              const yesterday = new Date();
+              yesterday.setDate(yesterday.getDate() - 1);
+              const yestStr = yesterday.toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              });
+
+              let dateLabel = dateString;
+              if (dateString === todayStr) dateLabel = "Today";
+              else if (dateString === yestStr) dateLabel = "Yesterday";
+
+              return {
+                id: e.id,
+                type: e.type as TimelineEvent["type"],
+                title: e.title,
+                description: e.description,
+                time: timeString,
+                date: dateLabel,
+              };
+            })
+          );
+        }
+      } catch (err) {
+        console.error("Failed to load timeline events", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, []);
+
   const filteredEvents = events.filter((e) => filterType === "All" || e.type === filterType);
-
   const dates = Array.from(new Set(filteredEvents.map((e) => e.date)));
 
   return (
@@ -117,41 +115,47 @@ export default function TimelinePage() {
 
       {/* Timeline Tree */}
       <div className="flex flex-col gap-6">
-        {dates.map((date) => (
-          <div key={date} className="flex flex-col gap-3">
-            {/* Date Header */}
-            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider pl-2 border-l-2 border-primary/50">
-              {date}
-            </h3>
+        {loading ? (
+          <LoadingSkeleton variant="list" count={3} />
+        ) : (
+          <>
+            {dates.map((date) => (
+              <div key={date} className="flex flex-col gap-3">
+                {/* Date Header */}
+                <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider pl-2 border-l-2 border-primary/50">
+                  {date}
+                </h3>
 
-            {/* Event list for this date */}
-            <div className="flex flex-col gap-2.5 pl-2 relative before:absolute before:left-6.5 before:top-2 before:bottom-2 before:w-[2px] before:bg-border">
-              {filteredEvents
-                .filter((e) => e.date === date)
-                .map((event) => (
-                  <motion.div
-                    key={event.id}
-                    initial={{ opacity: 0, x: -5 }}
-                    animate={{ opacity: 1, x: 0 }}
-                  >
-                    <TimelineCard
-                      type={event.type}
-                      title={event.title}
-                      description={event.description}
-                      time={event.time}
-                    />
-                  </motion.div>
-                ))}
-            </div>
-          </div>
-        ))}
+                {/* Event list for this date */}
+                <div className="flex flex-col gap-2.5 pl-2 relative before:absolute before:left-6.5 before:top-2 before:bottom-2 before:w-[2px] before:bg-border">
+                  {filteredEvents
+                    .filter((e) => e.date === date)
+                    .map((event) => (
+                      <motion.div
+                        key={event.id}
+                        initial={{ opacity: 0, x: -5 }}
+                        animate={{ opacity: 1, x: 0 }}
+                      >
+                        <TimelineCard
+                          type={event.type}
+                          title={event.title}
+                          description={event.description}
+                          time={event.time}
+                        />
+                      </motion.div>
+                    ))}
+                </div>
+              </div>
+            ))}
 
-        {filteredEvents.length === 0 && (
-          <EmptyState
-            icon={Clock}
-            title="No Activity Found"
-            description="No timeline events recorded for this category filter."
-          />
+            {filteredEvents.length === 0 && (
+              <EmptyState
+                icon={Clock}
+                title="No Activity Found"
+                description="No timeline events recorded for this category filter."
+              />
+            )}
+          </>
         )}
       </div>
     </div>

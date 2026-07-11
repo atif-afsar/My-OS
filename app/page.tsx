@@ -1,18 +1,84 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Play, Clock, CheckCircle } from "lucide-react";
 import ProgressCard from "@/components/cards/ProgressCard";
 import TimelineCard from "@/components/cards/TimelineCard";
 import SectionHeader from "@/components/common/SectionHeader";
+import LoadingSkeleton from "@/components/common/LoadingSkeleton";
+
+interface Task {
+  id: string;
+  title: string;
+  status: string;
+}
+
+interface Project {
+  id: string;
+  title: string;
+}
+
+interface TimelineEvent {
+  id: string;
+  type: "Work" | "Teaching" | "Learning" | "Gym" | "Mind" | "General";
+  title: string;
+  description: string;
+  time: string;
+}
 
 export default function DashboardPage() {
-  const progressItems = [
-    { label: "Work", completed: 3, total: 5, color: "bg-blue-500" },
-    { label: "Teaching", completed: 1, total: 2, color: "bg-emerald-500" },
-    { label: "Learning", completed: 2, total: 4, color: "bg-purple-500" },
-    { label: "Gym", completed: 0, total: 1, color: "bg-orange-500" },
-  ];
+  const [loading, setLoading] = useState(true);
+
+  // States
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [projectsCount, setProjectsCount] = useState(0);
+  const [recentTimeline, setRecentTimeline] = useState<TimelineEvent[]>([]);
+
+  // Load Data
+  useEffect(() => {
+    async function loadDashboard() {
+      try {
+        const [tasksRes, projRes, timeRes] = await Promise.all([
+          fetch("/api/tasks"),
+          fetch("/api/projects"),
+          fetch("/api/timeline"),
+        ]);
+        const tasksData = await tasksRes.json();
+        const projData = await projRes.json();
+        const timeData = await timeRes.json();
+
+        if (Array.isArray(tasksData)) setTasks(tasksData);
+        if (Array.isArray(projData)) setProjectsCount(projData.length);
+        if (Array.isArray(timeData)) {
+          setRecentTimeline(
+            timeData.slice(0, 3).map((e: any) => {
+              const dt = new Date(e.createdAt);
+              const timeString = dt.toLocaleTimeString("en-US", {
+                hour: "2-digit",
+                minute: "2-digit",
+              });
+              return {
+                id: e.id,
+                type: e.type as TimelineEvent["type"],
+                title: e.title,
+                description: e.description,
+                time: timeString,
+              };
+            })
+          );
+        }
+      } catch (err) {
+        console.error("Failed to load dashboard data", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadDashboard();
+  }, []);
+
+  const totalTasks = tasks.length;
+  const completedTasks = tasks.filter((t) => t.status === "Completed").length;
 
   return (
     <div className="flex flex-col gap-5 py-4">
@@ -81,17 +147,24 @@ export default function DashboardPage() {
             title="Today's Progress"
             action={<CheckCircle className="w-4 h-4 text-muted-foreground" />}
           />
-          <div className="flex flex-col gap-4">
-            {progressItems.map((item, idx) => (
+          {loading ? (
+            <LoadingSkeleton variant="text" />
+          ) : (
+            <div className="flex flex-col gap-4">
               <ProgressCard
-                key={idx}
-                label={item.label}
-                completed={item.completed}
-                total={item.total}
-                color={item.color}
+                label="Tasks Completed"
+                completed={completedTasks}
+                total={totalTasks}
+                color="bg-primary"
               />
-            ))}
-          </div>
+              <ProgressCard
+                label="Projects Organized"
+                completed={projectsCount > 0 ? 1 : 0}
+                total={projectsCount || 1}
+                color="bg-blue-500"
+              />
+            </div>
+          )}
         </motion.div>
       </div>
 
@@ -103,26 +176,27 @@ export default function DashboardPage() {
         className="flex flex-col gap-3"
       >
         <SectionHeader title="Recent Activity" />
-        <div className="flex flex-col gap-2.5">
-          <TimelineCard
-            type="Work"
-            title="Completed task 'Setup ESLint'"
-            description="Office Work • Verified linting compilation scripts"
-            time="10 mins ago"
-          />
-          <TimelineCard
-            type="Learning"
-            title="Added bookmark 'Tailwind CSS v4 Documentation'"
-            description="Learning Resource • Saved documentation links"
-            time="1 hour ago"
-          />
-          <TimelineCard
-            type="Gym"
-            title="Logged workout 'Push Day Routine'"
-            description="Logged workout sets: chest, shoulder, triceps lifts"
-            time="Yesterday"
-          />
-        </div>
+        {loading ? (
+          <LoadingSkeleton variant="list" count={2} />
+        ) : (
+          <div className="flex flex-col gap-2.5">
+            {recentTimeline.map((item) => (
+              <TimelineCard
+                key={item.id}
+                type={item.type}
+                title={item.title}
+                description={item.description}
+                time={item.time}
+              />
+            ))}
+
+            {recentTimeline.length === 0 && (
+              <div className="text-center py-8 border border-border bg-card rounded-2xl text-xs text-muted-foreground p-4">
+                No recent timeline logs recorded.
+              </div>
+            )}
+          </div>
+        )}
       </motion.div>
     </div>
   );

@@ -1,6 +1,9 @@
 "use client";
 
+import { useEffect } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { useNavigationStore } from "@/stores/navigation.store";
+import { useAuthStore } from "@/stores/auth.store";
 import TopBar from "./TopBar";
 import BottomNavigation from "./BottomNavigation";
 import FloatingActionButton from "./FloatingActionButton";
@@ -16,12 +19,34 @@ import {
   FileText,
   Lightbulb,
   BookOpen,
+  Loader2,
 } from "lucide-react";
 import Link from "next/link";
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const router = useRouter();
   const { isQuickAddOpen, setQuickAddOpen, isMoreOpen, setMoreOpen } =
     useNavigationStore();
+
+  const { user, loading, initialized, initialize } = useAuthStore();
+
+  // Initialize auth listener
+  useEffect(() => {
+    const unsubscribe = initialize();
+    return () => unsubscribe();
+  }, [initialize]);
+
+  // Handle Redirects
+  useEffect(() => {
+    if (initialized && !loading) {
+      if (!user && pathname !== "/login") {
+        router.push("/login");
+      } else if (user && pathname === "/login") {
+        router.push("/");
+      }
+    }
+  }, [user, loading, initialized, pathname, router]);
 
   const handleMoreClick = () => {
     setMoreOpen(false);
@@ -43,6 +68,34 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     { label: "Gym Workout", icon: Dumbbell, desc: "Log a workout session" },
   ];
 
+  // 1. If on login page, render children directly without shell structure
+  if (pathname === "/login") {
+    return <>{children}</>;
+  }
+
+  // 2. Show loading spinner during session boot check
+  if (loading || !initialized) {
+    return (
+      <div className="min-h-screen bg-[#09090B] text-foreground flex flex-col items-center justify-center gap-3">
+        <Loader2 className="w-10 h-10 text-primary animate-spin" />
+        <span className="text-xs text-muted-foreground font-medium animate-pulse">
+          Starting operating system...
+        </span>
+      </div>
+    );
+  }
+
+  // 3. Fallback gate if user is not authenticated yet (prevents flashes while router redirects)
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-[#09090B] text-foreground flex flex-col items-center justify-center gap-2">
+        <Loader2 className="w-6 h-6 text-primary animate-spin" />
+        <span className="text-xs text-muted-foreground">Redirecting to login...</span>
+      </div>
+    );
+  }
+
+  // 4. Render main authenticated layout
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col select-none">
       <TopBar />

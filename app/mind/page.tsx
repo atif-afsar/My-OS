@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Brain,
@@ -15,6 +15,7 @@ import PageHeader from "@/components/common/PageHeader";
 import NoteCard from "@/components/cards/NoteCard";
 import EmptyState from "@/components/common/EmptyState";
 import SectionHeader from "@/components/common/SectionHeader";
+import LoadingSkeleton from "@/components/common/LoadingSkeleton";
 
 interface KnowledgeItem {
   id: string;
@@ -29,90 +30,127 @@ interface KnowledgeItem {
 export default function MindPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<KnowledgeItem["category"] | "All">("All");
+  const [loading, setLoading] = useState(true);
 
-  // Local state for Knowledge Items
-  const [items, setItems] = useState<KnowledgeItem[]>([
-    {
-      id: "1",
-      title: "Amor Fati — Loving One's Fate",
-      content: "Amor Fati is a Latin phrase that translates to 'love of fate' or 'love of one's fate'. It is used to describe an attitude in which one sees everything that happens in one's life, including suffering and loss, as good or, at least, necessary.",
-      category: "Philosophy",
-      tags: ["Stoicism", "Nietzsche", "Mindset"],
-      favorite: true,
-      date: "2026-07-09",
-    },
-    {
-      id: "2",
-      title: "Knowledge Retrieval Agent Architecture Idea",
-      content: "Create a microservice running a local Vector Database (ChromaDB) to embed personal markdown files. Query this database via semantic search before calling the LLM context wrapper.",
-      category: "Ideas",
-      tags: ["AI", "VectorDB", "MyOS"],
-      favorite: false,
-      date: "2026-07-10",
-    },
-    {
-      id: "3",
-      title: "Hadith on Intentions",
-      content: "Actions are but by intentions, and every person will have only what they intended. (Sahih al-Bukhari)",
-      category: "Islamic Notes",
-      tags: ["Hadith", "Intentions", "Islamic"],
-      favorite: true,
-      date: "2026-07-05",
-    },
-    {
-      id: "4",
-      title: "Marcus Aurelius on Morning Perspective",
-      content: "When you arise in the morning, think of what a privilege it is to be alive—to breathe, to think, to enjoy, to love.",
-      category: "Quotes",
-      tags: ["Stoicism", "MarcusAurelius", "Morning"],
-      favorite: false,
-      date: "2026-07-01",
-    },
-    {
-      id: "5",
-      title: "Reflections on Context Switching",
-      content: "Heavy context switching degrades deep work capacity. Restrict client discussions to designated afternoons to shield mornings for raw programming.",
-      category: "Reflections",
-      tags: ["DeepWork", "Productivity"],
-      favorite: true,
-      date: "2026-07-08",
-    },
-  ]);
-
+  // States
+  const [items, setItems] = useState<KnowledgeItem[]>([]);
   const [newTitle, setNewTitle] = useState("");
   const [newContent, setNewContent] = useState("");
   const [newCategory, setNewCategory] = useState<KnowledgeItem["category"]>("Philosophy");
   const [showAddForm, setShowAddForm] = useState(false);
 
+  // Load Data
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const res = await fetch("/api/knowledge");
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          setItems(
+            data.map((item: any) => ({
+              id: item.id,
+              title: item.title,
+              content: item.content,
+              category: item.category,
+              tags: item.tags || [item.category.toLowerCase()],
+              favorite: item.favorite,
+              date: new Date(item.createdAt).toISOString().split("T")[0],
+            }))
+          );
+        }
+      } catch (err) {
+        console.error("Failed to load knowledge notes", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, []);
+
   // Handlers
-  const handleToggleFavorite = (id: string) => {
-    setItems(
-      items.map((item) => (item.id === id ? { ...item, favorite: !item.favorite } : item))
-    );
+  const handleToggleFavorite = async (id: string) => {
+    const item = items.find((i) => i.id === id);
+    if (!item) return;
+
+    try {
+      // Optimistic update
+      setItems(
+        items.map((i) => (i.id === id ? { ...i, favorite: !i.favorite } : i))
+      );
+
+      await fetch("/api/knowledge", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, favorite: !item.favorite }),
+      });
+    } catch (err) {
+      console.error(err);
+      // Rollback
+      setItems(
+        items.map((i) => (i.id === id ? { ...i, favorite: item.favorite } : i))
+      );
+    }
   };
 
-  const handleAddItem = (e: React.FormEvent) => {
+  const handleAddItem = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTitle.trim() || !newContent.trim()) return;
 
-    const newItem: KnowledgeItem = {
-      id: Date.now().toString(),
-      title: newTitle,
-      content: newContent,
-      category: newCategory,
-      tags: [newCategory.toLowerCase()],
-      favorite: false,
-      date: new Date().toISOString().split("T")[0],
-    };
+    try {
+      const res = await fetch("/api/knowledge", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: newTitle,
+          content: newContent,
+          category: newCategory,
+          favorite: false,
+        }),
+      });
+      const data = await res.json();
+      if (data.id) {
+        const mappedItem: KnowledgeItem = {
+          id: data.id,
+          title: data.title,
+          content: data.content,
+          category: data.category as KnowledgeItem["category"],
+          tags: [data.category.toLowerCase()],
+          favorite: data.favorite,
+          date: new Date(data.createdAt).toISOString().split("T")[0],
+        };
+        setItems([mappedItem, ...items]);
+        setNewTitle("");
+        setNewContent("");
+        setShowAddForm(false);
 
-    setItems([newItem, ...items]);
-    setNewTitle("");
-    setNewContent("");
-    setShowAddForm(false);
+        // Log to timeline
+        await fetch("/api/timeline", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "Mind",
+            title: `Added Knowledge: ${data.title}`,
+            description: `Category: ${data.category}`,
+            referenceId: data.id,
+            referenceType: "Knowledge",
+          }),
+        });
+      }
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  const handleDeleteItem = (id: string) => {
-    setItems(items.filter((i) => i.id !== id));
+  const handleDeleteItem = async (id: string) => {
+    try {
+      // Optimistic update
+      setItems(items.filter((i) => i.id !== id));
+      await fetch(`/api/knowledge?id=${id}`, {
+        method: "DELETE",
+      });
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   // Categories with Icons
@@ -125,7 +163,6 @@ export default function MindPage() {
     { label: "Reflections", icon: Brain, color: "text-pink-400" },
   ];
 
-  // Fallback icon for ideas since Lightbulb needs to be imported or mocked
   function LightbulbIcon(props: any) {
     return (
       <svg
@@ -203,85 +240,91 @@ export default function MindPage() {
 
       {/* Dynamic Content area */}
       <div className="flex flex-col gap-4">
-        {/* Toggle Form / Header */}
-        <SectionHeader
-          title={selectedCategory === "All" ? "All Notes" : `${selectedCategory} Collection`}
-          badge={
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-secondary text-muted-foreground border border-border">
-              {filteredItems.length}
-            </span>
-          }
-          action={
-            <button
-              onClick={() => setShowAddForm(!showAddForm)}
-              className="text-xs px-3 py-1.5 rounded-lg bg-pink-500/10 text-pink-400 hover:bg-pink-500/20 border border-pink-500/20 transition-all flex items-center gap-1 cursor-pointer"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              Add Knowledge
-            </button>
-          }
-        />
-
-        {/* Add Form */}
-        {showAddForm && (
-          <form onSubmit={handleAddItem} className="p-4 border border-border bg-card rounded-2xl flex flex-col gap-3">
-            <input
-              type="text"
-              placeholder="Title (e.g. Meditations Book 1)"
-              value={newTitle}
-              onChange={(e) => setNewTitle(e.target.value)}
-              className="px-3 h-10 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
-              required
+        {loading ? (
+          <LoadingSkeleton variant="card" count={2} />
+        ) : (
+          <>
+            {/* Toggle Form / Header */}
+            <SectionHeader
+              title={selectedCategory === "All" ? "All Notes" : `${selectedCategory} Collection`}
+              badge={
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-secondary text-muted-foreground border border-border">
+                  {filteredItems.length}
+                </span>
+              }
+              action={
+                <button
+                  onClick={() => setShowAddForm(!showAddForm)}
+                  className="text-xs px-3 py-1.5 rounded-lg bg-pink-500/10 text-pink-400 hover:bg-pink-500/20 border border-pink-500/20 transition-all flex items-center gap-1 cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Add Knowledge
+                </button>
+              }
             />
-            <div className="flex gap-2">
-              <select
-                value={newCategory}
-                onChange={(e) => setNewCategory(e.target.value as KnowledgeItem["category"])}
-                className="flex-1 px-3 h-10 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
-              >
-                <option value="Philosophy">Philosophy</option>
-                <option value="Ideas">Ideas</option>
-                <option value="Quotes">Quotes</option>
-                <option value="Islamic Notes">Islamic Notes</option>
-                <option value="Reflections">Reflections</option>
-              </select>
+
+            {/* Add Form */}
+            {showAddForm && (
+              <form onSubmit={handleAddItem} className="p-4 border border-border bg-card rounded-2xl flex flex-col gap-3">
+                <input
+                  type="text"
+                  placeholder="Title (e.g. Meditations Book 1)"
+                  value={newTitle}
+                  onChange={(e) => setNewTitle(e.target.value)}
+                  className="px-3 h-10 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
+                  required
+                />
+                <div className="flex gap-2">
+                  <select
+                    value={newCategory}
+                    onChange={(e) => setNewCategory(e.target.value as KnowledgeItem["category"])}
+                    className="flex-1 px-3 h-10 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
+                  >
+                    <option value="Philosophy">Philosophy</option>
+                    <option value="Ideas">Ideas</option>
+                    <option value="Quotes">Quotes</option>
+                    <option value="Islamic Notes">Islamic Notes</option>
+                    <option value="Reflections">Reflections</option>
+                  </select>
+                </div>
+                <textarea
+                  placeholder="Write content notes (Markdown format)..."
+                  value={newContent}
+                  onChange={(e) => setNewContent(e.target.value)}
+                  className="px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary text-foreground min-h-[96px]"
+                  required
+                />
+                <button type="submit" className="h-10 bg-primary text-primary-foreground font-semibold text-sm rounded-lg hover:bg-primary/95 transition-colors cursor-pointer flex items-center justify-center gap-1.5">
+                  <Plus className="w-4 h-4" /> Save to Second Brain
+                </button>
+              </form>
+            )}
+
+            {/* Knowledge Items Grid */}
+            <div className="flex flex-col gap-3.5">
+              {filteredItems.map((item) => (
+                <NoteCard
+                  key={item.id}
+                  category={item.category}
+                  title={item.title}
+                  content={item.content}
+                  tags={item.tags}
+                  favorite={item.favorite}
+                  onToggleFavorite={() => handleToggleFavorite(item.id)}
+                  onDelete={() => handleDeleteItem(item.id)}
+                />
+              ))}
+
+              {filteredItems.length === 0 && (
+                <EmptyState
+                  icon={Brain}
+                  title="No Knowledge Notes Found"
+                  description="Record philosophy notes, book quotes, or daily reflections to build your brain."
+                />
+              )}
             </div>
-            <textarea
-              placeholder="Write content notes (Markdown format)..."
-              value={newContent}
-              onChange={(e) => setNewContent(e.target.value)}
-              className="px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary text-foreground min-h-[96px]"
-              required
-            />
-            <button type="submit" className="h-10 bg-primary text-primary-foreground font-semibold text-sm rounded-lg hover:bg-primary/95 transition-colors cursor-pointer flex items-center justify-center gap-1.5">
-              <Plus className="w-4 h-4" /> Save to Second Brain
-            </button>
-          </form>
+          </>
         )}
-
-        {/* Knowledge Items Grid */}
-        <div className="flex flex-col gap-3.5">
-          {filteredItems.map((item) => (
-            <NoteCard
-              key={item.id}
-              category={item.category}
-              title={item.title}
-              content={item.content}
-              tags={item.tags}
-              favorite={item.favorite}
-              onToggleFavorite={() => handleToggleFavorite(item.id)}
-              onDelete={() => handleDeleteItem(item.id)}
-            />
-          ))}
-
-          {filteredItems.length === 0 && (
-            <EmptyState
-              icon={Brain}
-              title="No Knowledge Notes Found"
-              description="Record philosophy notes, book quotes, or daily reflections to build your brain."
-            />
-          )}
-        </div>
       </div>
     </div>
   );

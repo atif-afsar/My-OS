@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Dumbbell,
@@ -15,6 +15,7 @@ import PageHeader from "@/components/common/PageHeader";
 import WorkoutCard, { Exercise } from "@/components/cards/WorkoutCard";
 import EmptyState from "@/components/common/EmptyState";
 import SectionHeader from "@/components/common/SectionHeader";
+import LoadingSkeleton from "@/components/common/LoadingSkeleton";
 
 interface Routine {
   id: string;
@@ -34,16 +35,21 @@ interface SetLog {
 
 interface WorkoutHistoryRecord {
   id: string;
-  routineName: string;
+  exercise: string;
+  sets: number;
+  reps: number;
+  weight: number;
+  duration?: string;
+  notes?: string;
   date: string;
-  duration: string;
-  summary: string;
 }
 
 export default function GymPage() {
   const [activeTab, setActiveTab] = useState<"routines" | "tracker" | "history">("routines");
+  const [loading, setLoading] = useState(true);
 
-  // Local state for Routines
+  // States
+  const [history, setHistory] = useState<WorkoutHistoryRecord[]>([]);
   const [routines] = useState<Routine[]>([
     {
       id: "1",
@@ -74,23 +80,31 @@ export default function GymPage() {
   const [trackerSets, setTrackerSets] = useState<SetLog[]>([]);
   const [exerciseInputs, setExerciseInputs] = useState<{ [key: string]: { reps: string; weight: string } }>({});
 
-  // Local state for History
-  const [history, setHistory] = useState<WorkoutHistoryRecord[]>([
-    { id: "1", routineName: "Push Day Routine", date: "2026-07-09", duration: "55m", summary: "4 exercises, 13 sets logged" },
-    { id: "2", routineName: "Pull Day Routine", date: "2026-07-07", duration: "60m", summary: "4 exercises, 14 sets logged" },
-  ]);
+  // Load Data
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const res = await fetch("/api/workouts");
+        const data = await res.json();
+        if (Array.isArray(data)) setHistory(data);
+      } catch (err) {
+        console.error("Failed to load workout history", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, []);
 
-  // Start Workout Handlers
+  // Handlers
   const handleStartWorkout = (routine: Routine) => {
     setSelectedRoutine(routine);
     setActiveTab("tracker");
 
-    // Initialize tracking sets for all exercises in the routine
     const initialSets: SetLog[] = [];
     const initialInputs: typeof exerciseInputs = {};
 
     routine.exercises.forEach((ex) => {
-      // Default input weight/reps
       initialInputs[ex.name] = { reps: ex.targetReps.toString(), weight: "20" };
 
       for (let i = 0; i < ex.targetSets; i++) {
@@ -125,7 +139,6 @@ export default function GymPage() {
     };
     setExerciseInputs(updatedInputs);
 
-    // Apply to all uncompleted sets for this exercise
     setTrackerSets(
       trackerSets.map((s) => {
         if (s.exerciseName === exerciseName && !s.completed) {
@@ -140,24 +153,62 @@ export default function GymPage() {
     );
   };
 
-  const handleFinishWorkout = () => {
+  const handleFinishWorkout = async () => {
     if (!selectedRoutine) return;
 
-    const completedSetsCount = trackerSets.filter((s) => s.completed).length;
-    const totalSetsCount = trackerSets.length;
+    const completedSets = trackerSets.filter((s) => s.completed);
+    if (completedSets.length === 0) {
+      setSelectedRoutine(null);
+      setTrackerSets([]);
+      setActiveTab("history");
+      return;
+    }
 
-    const newRecord: WorkoutHistoryRecord = {
-      id: Date.now().toString(),
-      routineName: selectedRoutine.name,
-      date: new Date().toISOString().split("T")[0],
-      duration: "45m",
-      summary: `${completedSetsCount}/${totalSetsCount} sets completed`,
-    };
+    try {
+      // Log the workout exercises to the database
+      // For simplicity, we log the first completed exercise name with set details
+      const primaryExercise = completedSets[0].exerciseName;
+      const totalSets = completedSets.length;
+      const averageReps = Math.round(completedSets.reduce((acc, s) => acc + s.reps, 0) / totalSets);
+      const maxWeight = Math.max(...completedSets.map((s) => s.weight));
 
-    setHistory([newRecord, ...history]);
-    setSelectedRoutine(null);
-    setTrackerSets([]);
-    setActiveTab("history");
+      const res = await fetch("/api/workouts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          exercise: `${selectedRoutine.name} (${primaryExercise})`,
+          sets: totalSets,
+          reps: averageReps,
+          weight: maxWeight,
+          duration: "45m",
+          notes: `${totalSets} sets logged successfully.`,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.id) {
+        setHistory([data, ...history]);
+
+        // Log to timeline
+        await fetch("/api/timeline", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "Gym",
+            title: `Workout Logged: ${selectedRoutine.name}`,
+            description: `${totalSets} sets completed`,
+            referenceId: data.id,
+            referenceType: "Workout",
+          }),
+        });
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSelectedRoutine(null);
+      setTrackerSets([]);
+      setActiveTab("history");
+    }
   };
 
   return (
@@ -200,179 +251,178 @@ export default function GymPage() {
 
       {/* Tab Contents */}
       <div className="flex flex-col gap-4">
-        {/* ROUTINES TAB */}
-        {activeTab === "routines" && (
-          <motion.div
-            initial={{ opacity: 0, y: 5 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex flex-col gap-4"
-          >
-            <div className="flex flex-col gap-3">
-              {routines.map((routine) => (
-                <WorkoutCard
-                  key={routine.id}
-                  name={routine.name}
-                  description={routine.description}
-                  exercises={routine.exercises}
-                  onStart={() => handleStartWorkout(routine)}
-                />
-              ))}
-
-              {routines.length === 0 && (
-                <EmptyState
-                  icon={Dumbbell}
-                  title="No Routines Created"
-                  description="Set up workout routines to start tracking sets."
-                />
-              )}
-            </div>
-          </motion.div>
-        )}
-
-        {/* TRACKER TAB */}
-        {activeTab === "tracker" && (
-          <motion.div
-            initial={{ opacity: 0, y: 5 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex flex-col gap-4"
-          >
-            {!selectedRoutine ? (
-              <EmptyState
-                icon={Dumbbell}
-                title="No Active Workout Session"
-                description="Choose a routine from the 'Routines' tab and start your workout to log sets in real-time."
-                action={
-                  <button
-                    onClick={() => setActiveTab("routines")}
-                    className="px-4 h-9 bg-primary text-primary-foreground font-semibold text-xs rounded-lg hover:bg-primary/95 transition-all cursor-pointer mt-1"
-                  >
-                    Browse Routines
-                  </button>
-                }
-              />
-            ) : (
-              <div className="flex flex-col gap-4">
-                {/* Active Session Header */}
-                <div className="p-4 border border-primary/20 bg-primary/5 rounded-2xl flex justify-between items-center">
-                  <div>
-                    <span className="text-[10px] text-primary font-bold uppercase tracking-wider block">Session Active</span>
-                    <h3 className="font-bold text-foreground text-base">{selectedRoutine.name}</h3>
-                  </div>
-                  <button
-                    onClick={handleFinishWorkout}
-                    className="px-4 h-9 bg-primary text-primary-foreground font-semibold text-xs rounded-lg hover:bg-primary/90 transition-all cursor-pointer"
-                  >
-                    Finish Workout
-                  </button>
+        {loading ? (
+          <LoadingSkeleton variant="card" count={2} />
+        ) : (
+          <>
+            {/* ROUTINES TAB */}
+            {activeTab === "routines" && (
+              <motion.div
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex flex-col gap-4"
+              >
+                <div className="flex flex-col gap-3">
+                  {routines.map((routine) => (
+                    <WorkoutCard
+                      key={routine.id}
+                      name={routine.name}
+                      description={routine.description}
+                      exercises={routine.exercises}
+                      onStart={() => handleStartWorkout(routine)}
+                    />
+                  ))}
                 </div>
+              </motion.div>
+            )}
 
-                {/* Exercises Group and set checks */}
-                {selectedRoutine.exercises.map((exercise) => {
-                  const exSets = trackerSets.filter((s) => s.exerciseName === exercise.name);
-                  const inputs = exerciseInputs[exercise.name] || { reps: "10", weight: "20" };
+            {/* TRACKER TAB */}
+            {activeTab === "tracker" && (
+              <motion.div
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex flex-col gap-4"
+              >
+                {!selectedRoutine ? (
+                  <EmptyState
+                    icon={Dumbbell}
+                    title="No Active Workout Session"
+                    description="Choose a routine from the 'Routines' tab and start your workout to log sets in real-time."
+                    action={
+                      <button
+                        onClick={() => setActiveTab("routines")}
+                        className="px-4 h-9 bg-primary text-primary-foreground font-semibold text-xs rounded-lg hover:bg-primary/95 transition-all cursor-pointer mt-1"
+                      >
+                        Browse Routines
+                      </button>
+                    }
+                  />
+                ) : (
+                  <div className="flex flex-col gap-4">
+                    {/* Active Session Header */}
+                    <div className="p-4 border border-primary/20 bg-primary/5 rounded-2xl flex justify-between items-center">
+                      <div>
+                        <span className="text-[10px] text-primary font-bold uppercase tracking-wider block">Session Active</span>
+                        <h3 className="font-bold text-foreground text-base">{selectedRoutine.name}</h3>
+                      </div>
+                      <button
+                        onClick={handleFinishWorkout}
+                        className="px-4 h-9 bg-primary text-primary-foreground font-semibold text-xs rounded-lg hover:bg-primary/90 transition-all cursor-pointer"
+                      >
+                        Finish Workout
+                      </button>
+                    </div>
 
-                  return (
-                    <div key={exercise.name} className="p-5 rounded-2xl border border-border bg-card flex flex-col gap-3.5 shadow-sm">
-                      <div className="flex justify-between items-center border-b border-border pb-3">
-                        <h4 className="font-bold text-foreground text-sm">{exercise.name}</h4>
-                        {/* Target values */}
-                        <div className="flex gap-2">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-[10px] text-muted-foreground">Reps:</span>
-                            <input
-                              type="number"
-                              value={inputs.reps}
-                              onChange={(e) => handleUpdateSetInputs(exercise.name, "reps", e.target.value)}
-                              className="w-10 h-7 bg-background border border-border rounded-md text-xs text-center focus:outline-none"
-                            />
+                    {/* Exercises Group and set checks */}
+                    {selectedRoutine.exercises.map((exercise) => {
+                      const exSets = trackerSets.filter((s) => s.exerciseName === exercise.name);
+                      const inputs = exerciseInputs[exercise.name] || { reps: "10", weight: "20" };
+
+                      return (
+                        <div key={exercise.name} className="p-5 rounded-2xl border border-border bg-card flex flex-col gap-3.5 shadow-sm">
+                          <div className="flex justify-between items-center border-b border-border pb-3">
+                            <h4 className="font-bold text-foreground text-sm">{exercise.name}</h4>
+                            <div className="flex gap-2">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[10px] text-muted-foreground">Reps:</span>
+                                <input
+                                  type="number"
+                                  value={inputs.reps}
+                                  onChange={(e) => handleUpdateSetInputs(exercise.name, "reps", e.target.value)}
+                                  className="w-10 h-7 bg-background border border-border rounded-md text-xs text-center focus:outline-none"
+                                />
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[10px] text-muted-foreground">kg:</span>
+                                <input
+                                  type="number"
+                                  value={inputs.weight}
+                                  onChange={(e) => handleUpdateSetInputs(exercise.name, "weight", e.target.value)}
+                                  className="w-12 h-7 bg-background border border-border rounded-md text-xs text-center focus:outline-none"
+                                />
+                              </div>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-[10px] text-muted-foreground">kg:</span>
-                            <input
-                              type="number"
-                              value={inputs.weight}
-                              onChange={(e) => handleUpdateSetInputs(exercise.name, "weight", e.target.value)}
-                              className="w-12 h-7 bg-background border border-border rounded-md text-xs text-center focus:outline-none"
-                            />
+
+                          {/* Sets list */}
+                          <div className="flex flex-col gap-2 mt-1">
+                            {exSets.map((set) => (
+                              <div key={set.id} className="flex justify-between items-center bg-background/40 p-2.5 rounded-lg border border-border/50 text-xs">
+                                <span className="font-semibold text-muted-foreground">Set {set.setIndex}</span>
+                                <span className="text-foreground/90 font-medium">
+                                  {set.reps} reps @ {set.weight} kg
+                                </span>
+                                <button
+                                  onClick={() => handleToggleSetComplete(set.id)}
+                                  className={`w-6 h-6 rounded-md border flex items-center justify-center transition-colors cursor-pointer ${
+                                    set.completed
+                                      ? "bg-primary border-primary text-primary-foreground"
+                                      : "border-muted-foreground/30 hover:border-foreground"
+                                  }`}
+                                >
+                                  {set.completed && <CheckCircle className="w-4 h-4 fill-current" />}
+                                </button>
+                              </div>
+                            ))}
                           </div>
                         </div>
-                      </div>
-
-                      {/* Sets list */}
-                      <div className="flex flex-col gap-2 mt-1">
-                        {exSets.map((set) => (
-                          <div key={set.id} className="flex justify-between items-center bg-background/40 p-2.5 rounded-lg border border-border/50 text-xs">
-                            <span className="font-semibold text-muted-foreground">Set {set.setIndex}</span>
-                            <span className="text-foreground/90 font-medium">
-                              {set.reps} reps @ {set.weight} kg
-                            </span>
-                            <button
-                              onClick={() => handleToggleSetComplete(set.id)}
-                              className={`w-6 h-6 rounded-md border flex items-center justify-center transition-colors cursor-pointer ${
-                                set.completed
-                                  ? "bg-primary border-primary text-primary-foreground"
-                                  : "border-muted-foreground/30 hover:border-foreground"
-                              }`}
-                            >
-                              {set.completed && <CheckCircle className="w-4 h-4 fill-current" />}
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </motion.div>
             )}
-          </motion.div>
-        )}
 
-        {/* HISTORY TAB */}
-        {activeTab === "history" && (
-          <motion.div
-            initial={{ opacity: 0, y: 5 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex flex-col gap-3"
-          >
-            {/* Personal Records Summary Widget */}
-            <div className="p-4 bg-orange-500/5 border border-orange-500/10 rounded-2xl flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-orange-500/15 text-orange-400 flex items-center justify-center">
-                <Award className="w-5 h-5" />
-              </div>
-              <div>
-                <h4 className="font-bold text-foreground text-sm">Personal Records logged</h4>
-                <p className="text-xs text-muted-foreground mt-0.5">Incline Press: 24kg dumbbells (4 sets of 8)</p>
-              </div>
-            </div>
-
-            {/* List history logs */}
-            {history.map((record) => (
-              <div key={record.id} className="p-4 rounded-xl border border-border bg-card flex justify-between items-center shadow-sm">
-                <div>
-                  <h4 className="font-bold text-sm text-foreground">{record.routineName}</h4>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                      <Calendar className="w-3 h-3" />
-                      {record.date}
-                    </span>
-                    <span className="text-xs text-muted-foreground">•</span>
-                    <span className="text-[10px] text-muted-foreground">{record.summary}</span>
+            {/* HISTORY TAB */}
+            {activeTab === "history" && (
+              <motion.div
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex flex-col gap-3"
+              >
+                {/* Personal Records Summary Widget */}
+                <div className="p-4 bg-orange-500/5 border border-orange-500/10 rounded-2xl flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-orange-500/15 text-orange-400 flex items-center justify-center">
+                    <Award className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-foreground text-sm">Personal Records logged</h4>
+                    <p className="text-xs text-muted-foreground mt-0.5">Push Day Routine: Completed sets logged successfully.</p>
                   </div>
                 </div>
-                <span className="text-xs text-primary font-semibold bg-primary/10 px-2 py-0.5 rounded-md border border-primary/20">
-                  {record.duration}
-                </span>
-              </div>
-            ))}
 
-            {history.length === 0 && (
-              <EmptyState
-                icon={Calendar}
-                title="No History Logs"
-                description="Your past workout logs will appear here once completed."
-              />
+                {/* List history logs */}
+                {history.map((record) => (
+                  <div key={record.id} className="p-4 rounded-xl border border-border bg-card flex justify-between items-center shadow-sm">
+                    <div>
+                      <h4 className="font-bold text-sm text-foreground">{record.exercise}</h4>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                          <Calendar className="w-3 h-3" />
+                          {new Date(record.date).toISOString().split("T")[0]}
+                        </span>
+                        <span className="text-xs text-muted-foreground">•</span>
+                        <span className="text-[10px] text-muted-foreground">{record.sets} sets × {record.reps} reps @ {record.weight} kg</span>
+                      </div>
+                    </div>
+                    {record.duration && (
+                      <span className="text-xs text-primary font-semibold bg-primary/10 px-2 py-0.5 rounded-md border border-primary/20">
+                        {record.duration}
+                      </span>
+                    )}
+                  </div>
+                ))}
+
+                {history.length === 0 && (
+                  <EmptyState
+                    icon={Calendar}
+                    title="No History Logs"
+                    description="Your past workout logs will appear here once completed."
+                  />
+                )}
+              </motion.div>
             )}
-          </motion.div>
+          </>
         )}
       </div>
     </div>

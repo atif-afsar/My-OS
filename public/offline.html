@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Offline - MyOS</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 24px;
+      background-color: #09090B;
+      color: #FFFFFF;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      height: 100vh;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    .glow-circle {
+      position: absolute;
+      width: 320px;
+      height: 320px;
+      border-radius: 50%;
+      background-color: rgba(94, 14, 215, 0.08);
+      filter: blur(80px);
+      z-index: 1;
+      pointer-events: none;
+    }
+    .card {
+      background-color: #18181B;
+      border: 1px solid #27272A;
+      border-radius: 24px;
+      padding: 32px;
+      max-width: 380px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+      z-index: 2;
+      box-sizing: border-box;
+    }
+    .icon-container {
+      width: 56px;
+      height: 56px;
+      border-radius: 16px;
+      background-color: rgba(94, 14, 215, 0.1);
+      border: 1px solid rgba(94, 14, 215, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px auto;
+      color: #A78BFA;
+    }
+    h1 {
+      font-size: 20px;
+      font-weight: 700;
+      margin: 0 0 10px 0;
+      letter-spacing: -0.025em;
+    }
+    p {
+      font-size: 13px;
+      color: #A1A1AA;
+      line-height: 1.5;
+      margin: 0 0 24px 0;
+    }
+    button {
+      background-color: #5E0ED7;
+      color: #FFFFFF;
+      border: none;
+      border-radius: 12px;
+      height: 44px;
+      width: 100%;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.2s, transform 0.1s;
+      outline: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    button:active {
+      transform: scale(0.98);
+      background-color: #4C0B9E;
+    }
+  </style>
+</head>
+<body>
+  <div class="glow-circle"></div>
+  <div class="card">
+    <div class="icon-container">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="1" y1="1" x2="23" y2="23"></line>
+        <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.5"></path>
+        <path d="M5 12.5a10.94 10.94 0 0 1 5.83-2.84"></path>
+        <path d="M8.53 16.03a6.002 6.002 0 0 1 6.94 0"></path>
+        <line x1="12" y1="20" x2="12.01" y2="20"></line>
+      </svg>
+    </div>
+    <h1>You are offline</h1>
+    <p>MyOS requires an internet connection to sync with your database. Check your network and try again.</p>
+    <button onclick="window.location.reload()">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+      </svg>
+      Reconnect MyOS
+    </button>
+  </div>
+</body>
+</html>

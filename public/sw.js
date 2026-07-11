@@ -4,6 +4,7 @@ const ASSETS_TO_CACHE = [
   "/manifest.webmanifest",
   "/icon-192.png",
   "/icon-512.png",
+  "/offline.html",
 ];
 
 // Install Service Worker
@@ -50,12 +51,16 @@ self.addEventListener("fetch", (event) => {
       if (cachedResponse) {
         return cachedResponse;
       }
-      return fetch(event.request).then((response) => {
-        // Optional: Cache new requests on the fly if needed, but for MVP keep it simple
-        return response;
-      }).catch(() => {
-        // Fallback or silently fail if offline
-      });
+      return fetch(event.request)
+        .then((response) => {
+          return response;
+        })
+        .catch(() => {
+          // Fallback to offline.html for HTML page navigation requests
+          if (event.request.headers.get("accept")?.includes("text/html")) {
+            return caches.match("/offline.html");
+          }
+        });
     })
   );
 });

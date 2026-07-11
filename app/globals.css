@@ -103,4 +103,7 @@
   html {
     @apply font-sans;
   }
+  button, a, select, input, textarea {
+    -webkit-tap-highlight-color: transparent;
+  }
 }

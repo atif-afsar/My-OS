@@ -68,6 +68,28 @@ export default function SettingsPage() {
     }
   };
 
+  const handleToggleNotifications = async () => {
+    const nextVal = !notifications;
+    if (nextVal) {
+      if ("Notification" in window) {
+        const permission = await Notification.requestPermission();
+        if (permission === "granted") {
+          new Notification("MyOS Notifications", {
+            body: "Push alerts and activity updates enabled successfully!",
+            icon: "/icon-192.png",
+          });
+          await handleUpdateSetting({ notifications: true });
+        } else {
+          alert("Notification permission denied by browser settings.");
+        }
+      } else {
+        alert("This browser does not support notifications.");
+      }
+    } else {
+      await handleUpdateSetting({ notifications: false });
+    }
+  };
+
   return (
     <div className="flex-1 flex flex-col gap-6 py-4">
       {/* Header */}
@@ -187,7 +209,7 @@ export default function SettingsPage() {
           <div className="flex justify-between items-center text-sm">
             <span className="text-muted-foreground">Enable Push Notifications</span>
             <button
-              onClick={() => handleUpdateSetting({ notifications: !notifications })}
+              onClick={handleToggleNotifications}
               className={`w-11 h-6 rounded-full p-0.5 transition-colors cursor-pointer ${
                 notifications ? "bg-primary" : "bg-secondary border border-border"
               }`}

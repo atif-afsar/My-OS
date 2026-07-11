@@ -1,4 +1,4 @@
-import { Flame } from "lucide-react";
+import { Flame, Trash2 } from "lucide-react";
 
 interface Exercise {
   name: string;
@@ -11,6 +11,7 @@ interface WorkoutCardProps {
   description: string;
   exercises: Exercise[];
   onStart: () => void;
+  onDelete?: () => void;
 }
 
 export default function WorkoutCard({
@@ -18,12 +19,27 @@ export default function WorkoutCard({
   description,
   exercises,
   onStart,
+  onDelete,
 }: WorkoutCardProps) {
   return (
     <div className="p-5 rounded-2xl border border-border bg-card flex flex-col gap-4 shadow-sm w-full">
-      <div>
-        <h4 className="font-bold text-foreground text-base">{name}</h4>
-        <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
+      <div className="flex justify-between items-start">
+        <div>
+          <h4 className="font-bold text-foreground text-base">{name}</h4>
+          <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
+        </div>
+        {onDelete && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete();
+            }}
+            className="text-muted-foreground hover:text-destructive p-1.5 transition-colors cursor-pointer"
+            aria-label="Delete custom routine"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        )}
       </div>
 
       <div className="border-t border-border pt-3.5">

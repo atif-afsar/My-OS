@@ -67,6 +67,28 @@ export default function MindPage() {
     loadData();
   }, []);
 
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("add") === "true") {
+        setShowAddForm(true);
+        const cat = params.get("category");
+        if (cat) {
+          const validCategories: KnowledgeItem["category"][] = [
+            "Philosophy",
+            "Ideas",
+            "Quotes",
+            "Islamic Notes",
+            "Reflections",
+          ];
+          if (validCategories.includes(cat as any)) {
+            setNewCategory(cat as KnowledgeItem["category"]);
+          }
+        }
+      }
+    }
+  }, []);
+
   // Handlers
   const handleToggleFavorite = async (id: string) => {
     const item = items.find((i) => i.id === id);
@@ -94,14 +116,18 @@ export default function MindPage() {
 
   const handleAddItem = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newTitle.trim() || !newContent.trim()) return;
+    const titleToSave = newCategory === "Ideas" 
+      ? (newTitle.trim() || newContent.trim().substring(0, 30) || "New Idea") 
+      : newTitle.trim();
+
+    if (!titleToSave || !newContent.trim()) return;
 
     try {
       const res = await fetch("/api/knowledge", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          title: newTitle,
+          title: titleToSave,
           content: newContent,
           category: newCategory,
           favorite: false,
@@ -266,37 +292,67 @@ export default function MindPage() {
             {/* Add Form */}
             {showAddForm && (
               <form onSubmit={handleAddItem} className="p-4 border border-border bg-card rounded-2xl flex flex-col gap-3">
-                <input
-                  type="text"
-                  placeholder="Title (e.g. Meditations Book 1)"
-                  value={newTitle}
-                  onChange={(e) => setNewTitle(e.target.value)}
-                  className="px-3 h-10 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
-                  required
-                />
-                <div className="flex gap-2">
-                  <select
-                    value={newCategory}
-                    onChange={(e) => setNewCategory(e.target.value as KnowledgeItem["category"])}
-                    className="flex-1 px-3 h-10 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
-                  >
-                    <option value="Philosophy">Philosophy</option>
-                    <option value="Ideas">Ideas</option>
-                    <option value="Quotes">Quotes</option>
-                    <option value="Islamic Notes">Islamic Notes</option>
-                    <option value="Reflections">Reflections</option>
-                  </select>
-                </div>
-                <textarea
-                  placeholder="Write content notes (Markdown format)..."
-                  value={newContent}
-                  onChange={(e) => setNewContent(e.target.value)}
-                  className="px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary text-foreground min-h-[96px]"
-                  required
-                />
-                <button type="submit" className="h-10 bg-primary text-primary-foreground font-semibold text-sm rounded-lg hover:bg-primary/95 transition-colors cursor-pointer flex items-center justify-center gap-1.5">
-                  <Plus className="w-4 h-4" /> Save to Second Brain
-                </button>
+                {newCategory === "Ideas" ? (
+                  /* Idea capturing interface (Lightbulb Form) */
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-center gap-2 text-amber-400">
+                      <div className="w-6 h-6 rounded-md bg-amber-500/10 flex items-center justify-center border border-amber-500/20">
+                        <LightbulbIcon className="w-3.5 h-3.5" />
+                      </div>
+                      <span className="text-xs font-semibold uppercase tracking-wider">Quick Idea Spark</span>
+                    </div>
+                    <textarea
+                      placeholder="What is your sudden spark of inspiration? (No title or category needed)..."
+                      value={newContent}
+                      onChange={(e) => setNewContent(e.target.value)}
+                      className="px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary text-foreground min-h-[96px]"
+                      required
+                    />
+                    <button type="submit" className="h-10 bg-amber-500 text-black font-bold text-sm rounded-lg hover:bg-amber-400 transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-lg shadow-amber-500/10">
+                      <Plus className="w-4 h-4" /> Save Spark / Idea
+                    </button>
+                  </div>
+                ) : (
+                  /* Note capturing interface (Standard/Reflection Notepad Form) */
+                  <>
+                    <div className="flex items-center gap-2 text-pink-400 mb-1">
+                      <div className="w-6 h-6 rounded-md bg-pink-500/10 flex items-center justify-center border border-pink-500/20">
+                        <Brain className="w-3.5 h-3.5" />
+                      </div>
+                      <span className="text-xs font-semibold uppercase tracking-wider">Write General Note / Reflection</span>
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Note Title (e.g. Meditations Book 1)"
+                      value={newTitle}
+                      onChange={(e) => setNewTitle(e.target.value)}
+                      className="px-3 h-10 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
+                      required
+                    />
+                    <div className="flex gap-2">
+                      <select
+                        value={newCategory}
+                        onChange={(e) => setNewCategory(e.target.value as KnowledgeItem["category"])}
+                        className="flex-1 px-3 h-10 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
+                      >
+                        <option value="Philosophy">Philosophy</option>
+                        <option value="Quotes">Quotes</option>
+                        <option value="Islamic Notes">Islamic Notes</option>
+                        <option value="Reflections">Reflections</option>
+                      </select>
+                    </div>
+                    <textarea
+                      placeholder="Write content notes (Markdown format)..."
+                      value={newContent}
+                      onChange={(e) => setNewContent(e.target.value)}
+                      className="px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary text-foreground min-h-[96px]"
+                      required
+                    />
+                    <button type="submit" className="h-10 bg-primary text-primary-foreground font-semibold text-sm rounded-lg hover:bg-primary/95 transition-colors cursor-pointer flex items-center justify-center gap-1.5">
+                      <Plus className="w-4 h-4" /> Save to Second Brain
+                    </button>
+                  </>
+                )}
               </form>
             )}
 

@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useNavigationStore } from "@/stores/navigation.store";
 import { useAuthStore } from "@/stores/auth.store";
+import { useSettingsStore } from "@/stores/settings.store";
 import TopBar from "./TopBar";
 import BottomNavigation from "./BottomNavigation";
 import FloatingActionButton from "./FloatingActionButton";
@@ -30,12 +31,20 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     useNavigationStore();
 
   const { user, loading, initialized, initialize } = useAuthStore();
+  const { loadSettings } = useSettingsStore();
 
   // Initialize auth listener
   useEffect(() => {
     const unsubscribe = initialize();
     return () => unsubscribe();
   }, [initialize]);
+
+  // Load settings when user is logged in
+  useEffect(() => {
+    if (user?.id) {
+      loadSettings(user.id);
+    }
+  }, [user, loadSettings]);
 
   // Handle Redirects
   useEffect(() => {
@@ -61,11 +70,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   ];
 
   const quickAddItems = [
-    { label: "Task", icon: CheckSquare, desc: "Add something to do" },
-    { label: "Idea", icon: Lightbulb, desc: "Capture a sudden thought" },
-    { label: "Quick Note", icon: FileText, desc: "Write a general note" },
-    { label: "Learning Resource", icon: BookOpen, desc: "Save a study link/note" },
-    { label: "Gym Workout", icon: Dumbbell, desc: "Log a workout session" },
+    { label: "Task", icon: CheckSquare, desc: "Add something to do", href: "/work" },
+    { label: "Idea", icon: Lightbulb, desc: "Capture a sudden thought", href: "/mind?add=true&category=Ideas" },
+    { label: "Quick Note", icon: FileText, desc: "Write a general note", href: "/mind?add=true&category=Reflections" },
+    { label: "Learning Resource", icon: BookOpen, desc: "Save a study link/note", href: "/learning?tab=bookmarks" },
+    { label: "Gym Workout", icon: Dumbbell, desc: "Log a workout session", href: "/gym" },
   ];
 
   // 1. If on login page, render children directly without shell structure
@@ -151,7 +160,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   key={idx}
                   onClick={() => {
                     setQuickAddOpen(false);
-                    console.log(`Quick capture for ${item.label} clicked`);
+                    router.push(item.href);
                   }}
                   className="flex items-center gap-4 p-3 rounded-lg border border-border bg-background/50 hover:bg-secondary transition-colors text-left w-full cursor-pointer"
                 >

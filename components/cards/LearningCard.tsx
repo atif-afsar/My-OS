@@ -1,8 +1,11 @@
+import { Trash2 } from "lucide-react";
+
 interface LearningCardProps {
   title: string;
   category: string;
   progress: number;
   status: string;
+  onDelete?: () => void;
 }
 
 export default function LearningCard({
@@ -10,6 +13,7 @@ export default function LearningCard({
   category,
   progress,
   status,
+  onDelete,
 }: LearningCardProps) {
   return (
     <div className="p-4 rounded-xl border border-border bg-card flex flex-col gap-3 shadow-sm w-full">
@@ -20,17 +24,31 @@ export default function LearningCard({
             {category}
           </span>
         </div>
-        <span
-          className={`text-[10px] px-2 py-0.5 rounded-full font-bold border ${
-            status === "Mastered"
-              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-              : status === "Learning"
-              ? "bg-purple-500/10 text-purple-400 border-purple-500/20"
-              : "bg-slate-500/10 text-slate-400 border-slate-500/20"
-          }`}
-        >
-          {status}
-        </span>
+        <div className="flex gap-2 items-center">
+          <span
+            className={`text-[10px] px-2 py-0.5 rounded-full font-bold border ${
+              status === "Mastered"
+                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                : status === "Learning"
+                ? "bg-purple-500/10 text-purple-400 border-purple-500/20"
+                : "bg-slate-500/10 text-slate-400 border-slate-500/20"
+            }`}
+          >
+              {status}
+          </span>
+          {onDelete && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete();
+              }}
+              className="text-muted-foreground hover:text-destructive p-1 transition-colors cursor-pointer"
+              aria-label="Delete subject"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
       </div>
       <div className="flex flex-col gap-1.5">
         <div className="flex justify-between text-xs text-muted-foreground">

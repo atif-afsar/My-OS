@@ -88,6 +88,18 @@ export default function LearningPage() {
     loadData();
   }, []);
 
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get("tab");
+      if (tab === "bookmarks") {
+        setActiveTab("bookmarks");
+      } else if (tab === "notes") {
+        setActiveTab("notes");
+      }
+    }
+  }, []);
+
   // Handlers
   const handleAddTopic = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -161,6 +173,28 @@ export default function LearningPage() {
           }),
         });
       }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteTopic = async (id: string) => {
+    try {
+      setTopics(topics.filter((t) => t.id !== id));
+      await fetch(`/api/learning/topics?id=${id}`, {
+        method: "DELETE",
+      });
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteNote = async (id: string) => {
+    try {
+      setNotes(notes.filter((n) => n.id !== id));
+      await fetch(`/api/learning/notes?id=${id}`, {
+        method: "DELETE",
+      });
     } catch (err) {
       console.error(err);
     }
@@ -289,6 +323,7 @@ export default function LearningPage() {
                       category={topic.category}
                       progress={topic.progress}
                       status={topic.status}
+                      onDelete={() => handleDeleteTopic(topic.id)}
                     />
                   ))}
 
@@ -350,9 +385,18 @@ export default function LearningPage() {
                 <div className="flex flex-col gap-3">
                   {notes.map((note) => (
                     <div key={note.id} className="p-5 rounded-2xl border border-border bg-card flex flex-col gap-3 shadow-md">
-                      <div>
-                        <span className="text-[10px] text-primary font-bold uppercase tracking-wider block">{note.topic?.title || "General"}</span>
-                        <h4 className="font-bold text-foreground mt-0.5 text-base">{note.title}</h4>
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <span className="text-[10px] text-primary font-bold uppercase tracking-wider block">{note.topic?.title || "General"}</span>
+                          <h4 className="font-bold text-foreground mt-0.5 text-base">{note.title}</h4>
+                        </div>
+                        <button
+                          onClick={() => handleDeleteNote(note.id)}
+                          className="text-muted-foreground hover:text-destructive p-1 transition-colors cursor-pointer"
+                          aria-label="Delete note"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                       <p className="text-sm text-foreground/90 leading-relaxed bg-background/20 p-3.5 rounded-xl border border-border/50">
                         {note.content}

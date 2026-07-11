@@ -50,7 +50,7 @@ export default function GymPage() {
 
   // States
   const [history, setHistory] = useState<WorkoutHistoryRecord[]>([]);
-  const [routines] = useState<Routine[]>([
+  const defaultRoutines: Routine[] = [
     {
       id: "1",
       name: "Push Day Routine",
@@ -73,7 +73,18 @@ export default function GymPage() {
         { name: "Incline Bicep Curls", targetSets: 3, targetReps: 12 },
       ],
     },
-  ]);
+  ];
+
+  const [routines, setRoutines] = useState<Routine[]>(defaultRoutines);
+
+  // Custom routines form states
+  const [showAddRoutineForm, setShowAddRoutineForm] = useState(false);
+  const [newRoutineName, setNewRoutineName] = useState("");
+  const [newRoutineDesc, setNewRoutineDesc] = useState("");
+  const [newRoutineExercises, setNewRoutineExercises] = useState<Exercise[]>([]);
+  const [tempExName, setTempExName] = useState("");
+  const [tempExSets, setTempExSets] = useState(3);
+  const [tempExReps, setTempExReps] = useState(10);
 
   // Local state for Active Workout Tracker
   const [selectedRoutine, setSelectedRoutine] = useState<Routine | null>(null);
@@ -95,6 +106,31 @@ export default function GymPage() {
     }
     loadData();
   }, []);
+
+  // Load custom routines from localStorage on mount
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("myos-gym-routines");
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed)) {
+            setRoutines([...defaultRoutines, ...parsed]);
+          }
+        } catch (e) {
+          console.error("Failed to parse custom routines", e);
+        }
+      }
+    }
+  }, []);
+
+  const handleDeleteRoutine = (id: string) => {
+    if (id === "1" || id === "2") return;
+    const updated = routines.filter((r) => r.id !== id);
+    setRoutines(updated);
+    const customOnly = updated.filter((r) => r.id !== "1" && r.id !== "2");
+    localStorage.setItem("myos-gym-routines", JSON.stringify(customOnly));
+  };
 
   // Handlers
   const handleStartWorkout = (routine: Routine) => {
@@ -262,6 +298,138 @@ export default function GymPage() {
                 animate={{ opacity: 1, y: 0 }}
                 className="flex flex-col gap-4"
               >
+                <SectionHeader
+                  title="Workout Routines"
+                  action={
+                    <button
+                      onClick={() => setShowAddRoutineForm(!showAddRoutineForm)}
+                      className="text-xs px-3 py-1.5 rounded-lg bg-orange-500/10 text-orange-400 hover:bg-orange-500/20 border border-orange-500/20 transition-all flex items-center gap-1 cursor-pointer font-semibold"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      Create Routine
+                    </button>
+                  }
+                />
+
+                {showAddRoutineForm && (
+                  <div className="p-5 border border-border bg-card rounded-2xl flex flex-col gap-4 shadow-md">
+                    <h3 className="font-bold text-foreground text-sm">Create Custom Routine</h3>
+                    <div className="flex flex-col gap-3">
+                      <input
+                        type="text"
+                        placeholder="Routine Name (e.g. Leg Day)"
+                        value={newRoutineName}
+                        onChange={(e) => setNewRoutineName(e.target.value)}
+                        className="px-3 h-10 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
+                      />
+                      <input
+                        type="text"
+                        placeholder="Description (e.g. Focus on quads and calves)"
+                        value={newRoutineDesc}
+                        onChange={(e) => setNewRoutineDesc(e.target.value)}
+                        className="px-3 h-10 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
+                      />
+                    </div>
+
+                    {/* Exercises builder */}
+                    <div className="border-t border-border pt-3">
+                      <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider block mb-2">
+                        Add Exercises ({newRoutineExercises.length} added)
+                      </span>
+                      
+                      {/* List of currently added exercises */}
+                      {newRoutineExercises.length > 0 && (
+                        <div className="flex flex-col gap-2 mb-3 bg-background/30 p-3 rounded-xl border border-border">
+                          {newRoutineExercises.map((ex, idx) => (
+                            <div key={idx} className="flex justify-between items-center text-xs">
+                              <span className="text-foreground font-medium">{ex.name}</span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-muted-foreground">{ex.targetSets}s × {ex.targetReps}r</span>
+                                <button
+                                  type="button"
+                                  onClick={() => setNewRoutineExercises(newRoutineExercises.filter((_, i) => i !== idx))}
+                                  className="text-muted-foreground hover:text-destructive cursor-pointer"
+                                >
+                                  Remove
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Input fields to add an exercise */}
+                      <div className="grid grid-cols-1 sm:grid-cols-4 gap-2.5">
+                        <input
+                          type="text"
+                          placeholder="Exercise Name (e.g. Squat)"
+                          value={tempExName}
+                          onChange={(e) => setTempExName(e.target.value)}
+                          className="sm:col-span-2 px-3 h-9 bg-background border border-border rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
+                        />
+                        <div className="flex gap-1">
+                          <input
+                            type="number"
+                            placeholder="Sets"
+                            value={tempExSets || ""}
+                            onChange={(e) => setTempExSets(parseInt(e.target.value) || 0)}
+                            className="w-1/2 px-2 h-9 bg-background border border-border rounded-lg text-xs text-center focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
+                          />
+                          <input
+                            type="number"
+                            placeholder="Reps"
+                            value={tempExReps || ""}
+                            onChange={(e) => setTempExReps(parseInt(e.target.value) || 0)}
+                            className="w-1/2 px-2 h-9 bg-background border border-border rounded-lg text-xs text-center focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!tempExName.trim()) return;
+                            setNewRoutineExercises([...newRoutineExercises, {
+                              name: tempExName,
+                              targetSets: tempExSets || 3,
+                              targetReps: tempExReps || 10,
+                            }]);
+                            setTempExName("");
+                          }}
+                          className="h-9 bg-secondary text-foreground text-xs font-semibold rounded-lg hover:bg-secondary/80 transition-colors cursor-pointer"
+                        >
+                          + Add Exercise
+                        </button>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        if (!newRoutineName.trim() || newRoutineExercises.length === 0) return;
+                        const newRoutine: Routine = {
+                          id: Math.random().toString(),
+                          name: newRoutineName,
+                          description: newRoutineDesc,
+                          exercises: newRoutineExercises,
+                        };
+                        const updated = [...routines, newRoutine];
+                        setRoutines(updated);
+                        
+                        // Save custom routines only
+                        const customOnly = updated.filter(r => r.id !== "1" && r.id !== "2");
+                        localStorage.setItem("myos-gym-routines", JSON.stringify(customOnly));
+
+                        // Reset
+                        setNewRoutineName("");
+                        setNewRoutineDesc("");
+                        setNewRoutineExercises([]);
+                        setShowAddRoutineForm(false);
+                      }}
+                      className="h-10 bg-primary text-primary-foreground font-semibold text-sm rounded-lg hover:bg-primary/95 transition-colors cursor-pointer"
+                    >
+                      Save Custom Routine
+                    </button>
+                  </div>
+                )}
+
                 <div className="flex flex-col gap-3">
                   {routines.map((routine) => (
                     <WorkoutCard
@@ -270,6 +438,7 @@ export default function GymPage() {
                       description={routine.description}
                       exercises={routine.exercises}
                       onStart={() => handleStartWorkout(routine)}
+                      onDelete={routine.id !== "1" && routine.id !== "2" ? () => handleDeleteRoutine(routine.id) : undefined}
                     />
                   ))}
                 </div>

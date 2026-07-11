@@ -4,15 +4,16 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Settings, LogOut, Bell, Palette, Globe, Shield } from "lucide-react";
 import { useAuthStore } from "@/stores/auth.store";
+import { useSettingsStore } from "@/stores/settings.store";
 import PageHeader from "@/components/common/PageHeader";
 
 export default function SettingsPage() {
   const { user, signOut } = useAuthStore();
   const authHeaders: Record<string, string> = user?.id ? { "x-user-id": user.id } : {};
 
-  // Settings states
-  const [theme, setTheme] = useState("dark");
-  const [accentColor, setAccentColor] = useState("#5E0ED7");
+  // Settings store
+  const { theme, accentColor, setTheme, setAccentColor } = useSettingsStore();
+
   const [language, setLanguage] = useState("en");
   const [notifications, setNotifications] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -56,7 +57,7 @@ export default function SettingsPage() {
       });
       const data = await res.json();
       if (data) {
-        if (updates.theme !== undefined) setTheme(updates.theme);
+        if (updates.theme !== undefined) setTheme(updates.theme as "dark" | "light");
         if (updates.accentColor !== undefined) setAccentColor(updates.accentColor);
         if (updates.language !== undefined) setLanguage(updates.language);
         if (updates.notifications !== undefined) setNotifications(updates.notifications);

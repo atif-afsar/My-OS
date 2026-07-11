@@ -37,6 +37,21 @@ export default function TopBar() {
     else if (hours < 17) setGreeting("Good afternoon");
     else if (hours < 21) setGreeting("Good evening");
     else setGreeting("Good night");
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isInput =
+        document.activeElement?.tagName === "INPUT" ||
+        document.activeElement?.tagName === "TEXTAREA" ||
+        document.activeElement?.getAttribute("contenteditable") === "true";
+
+      if ((e.ctrlKey && e.key.toLowerCase() === "k") || (e.key === "/" && !isInput)) {
+        e.preventDefault();
+        setIsSearchOpen((prev) => !prev);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
   // Debounced search trigger

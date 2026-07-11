@@ -19,6 +19,7 @@ import ProgressCard from "@/components/cards/ProgressCard";
 import LoadingSkeleton from "@/components/common/LoadingSkeleton";
 import SectionHeader from "@/components/common/SectionHeader";
 import { useAuthStore } from "@/stores/auth.store";
+import SwipeableItem from "@/components/common/SwipeableItem";
 
 interface Project {
   id: string;
@@ -459,12 +460,17 @@ export default function WorkPage() {
                 {/* Task List */}
                 <div className="flex flex-col gap-2.5">
                   {filteredTasks.map((task) => (
-                    <TaskCard
+                    <SwipeableItem
                       key={task.id}
-                      task={task}
-                      onToggleStatus={handleToggleTaskStatus}
-                      onDelete={handleDeleteTask}
-                    />
+                      onSwipeRight={() => handleToggleTaskStatus(task.id)}
+                      onSwipeLeft={() => handleDeleteTask(task.id)}
+                    >
+                      <TaskCard
+                        task={task}
+                        onToggleStatus={handleToggleTaskStatus}
+                        onDelete={handleDeleteTask}
+                      />
+                    </SwipeableItem>
                   ))}
 
                   {filteredTasks.length === 0 && (

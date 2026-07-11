@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useNavigationStore } from "@/stores/navigation.store";
 import { useAuthStore } from "@/stores/auth.store";
@@ -21,14 +21,21 @@ import {
   Lightbulb,
   BookOpen,
   Loader2,
+  Clock,
+  Inbox,
+  Mic,
+  Sparkles,
 } from "lucide-react";
 import Link from "next/link";
+import VoiceCaptureModal from "@/components/common/VoiceCaptureModal";
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { isQuickAddOpen, setQuickAddOpen, isMoreOpen, setMoreOpen } =
     useNavigationStore();
+
+  const [isVoiceModalOpen, setVoiceModalOpen] = useState(false);
 
   const { user, loading, initialized, initialize } = useAuthStore();
   const { loadSettings } = useSettingsStore();
@@ -66,13 +73,23 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     { label: "Teaching", href: "/teaching", icon: GraduationCap, color: "text-emerald-500" },
     { label: "Gym", href: "/gym", icon: Dumbbell, color: "text-orange-500" },
     { label: "Mind", href: "/mind", icon: Brain, color: "text-purple-500" },
+    { label: "Timeline", href: "/timeline", icon: Clock, color: "text-slate-400" },
+    { label: "Daily Review", href: "/review", icon: FileText, color: "text-pink-400" },
+    { label: "AI Copilot", href: "/assistant", icon: Sparkles, color: "text-violet-400" },
     { label: "Settings", href: "/settings", icon: Settings, color: "text-slate-400" },
   ];
 
   const quickAddItems = [
     { label: "Task", icon: CheckSquare, desc: "Add something to do", href: "/work" },
-    { label: "Idea", icon: Lightbulb, desc: "Capture a sudden thought", href: "/mind?add=true&category=Ideas" },
-    { label: "Quick Note", icon: FileText, desc: "Write a general note", href: "/mind?add=true&category=Reflections" },
+    { label: "Idea", icon: Lightbulb, desc: "Capture a sudden thought", href: "/inbox?add=true&type=Idea" },
+    { label: "Quick Note", icon: FileText, desc: "Write a general note", href: "/inbox?add=true&type=Note" },
+    {
+      label: "Voice Record",
+      icon: Mic,
+      desc: "Speak to capture thoughts",
+      href: "",
+      onClick: () => setVoiceModalOpen(true),
+    },
     { label: "Learning Resource", icon: BookOpen, desc: "Save a study link/note", href: "/learning?tab=bookmarks" },
     { label: "Gym Workout", icon: Dumbbell, desc: "Log a workout session", href: "/gym" },
   ];
@@ -160,7 +177,11 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   key={idx}
                   onClick={() => {
                     setQuickAddOpen(false);
-                    router.push(item.href);
+                    if ("onClick" in item && item.onClick) {
+                      item.onClick();
+                    } else {
+                      router.push(item.href);
+                    }
                   }}
                   className="flex items-center gap-4 p-3 rounded-lg border border-border bg-background/50 hover:bg-secondary transition-colors text-left w-full cursor-pointer"
                 >
@@ -177,6 +198,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </DialogContent>
       </Dialog>
+      <VoiceCaptureModal isOpen={isVoiceModalOpen} onClose={() => setVoiceModalOpen(false)} />
     </div>
   );
 }

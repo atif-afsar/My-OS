@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, BookOpen, Clock, Menu } from "lucide-react";
+import { Home, BookOpen, Menu, Inbox } from "lucide-react";
 import { useNavigationStore } from "@/stores/navigation.store";
 
 export default function BottomNavigation() {
@@ -11,9 +11,9 @@ export default function BottomNavigation() {
 
   const navItems = [
     { label: "Home", href: "/", icon: Home },
-    { label: "Learning", href: "/learning", icon: BookOpen },
+    { label: "Inbox", href: "/inbox", icon: Inbox },
     { label: "Spacer", href: "", icon: null }, // empty space for FAB
-    { label: "Timeline", href: "/timeline", icon: Clock },
+    { label: "Learning", href: "/learning", icon: BookOpen },
     { label: "More", href: "", icon: Menu, isActionButton: true },
   ];
 

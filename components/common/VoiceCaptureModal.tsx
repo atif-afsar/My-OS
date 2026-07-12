@@ -29,6 +29,8 @@ export default function VoiceCaptureModal({
   const [saving, setSaving] = useState(false);
 
   const recognitionRef = useRef<any>(null);
+  const shouldBeRecordingRef = useRef(false);
+  const restartTimerRef = useRef<any>(null);
 
   // Initialize Speech Recognition
   useEffect(() => {
@@ -48,6 +50,7 @@ export default function VoiceCaptureModal({
 
       rec.onstart = () => {
         setIsRecording(true);
+        shouldBeRecordingRef.current = true;
         setErrorMsg("");
       };
 
@@ -74,6 +77,10 @@ export default function VoiceCaptureModal({
         console.error("Speech recognition error", event.error);
         if (event.error === "not-allowed") {
           setErrorMsg("Microphone access denied. Please check permissions.");
+          shouldBeRecordingRef.current = false;
+        } else if (event.error === "aborted" || event.error === "no-speech") {
+          // Silent errors: aborted or no-speech are normal, don't show red warning
+          console.log(`Speech recognition stopped: ${event.error}`);
         } else {
           setErrorMsg(`Error occurred: ${event.error}`);
         }
@@ -82,6 +89,19 @@ export default function VoiceCaptureModal({
 
       rec.onend = () => {
         setIsRecording(false);
+        if (shouldBeRecordingRef.current) {
+          if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
+          restartTimerRef.current = setTimeout(() => {
+            if (shouldBeRecordingRef.current) {
+              try {
+                rec.start();
+                setIsRecording(true);
+              } catch (e) {
+                console.error("Auto-restart speech recognition failed", e);
+              }
+            }
+          }, 300); // 300ms debounce delay to release previous resource
+        }
       };
 
       recognitionRef.current = rec;
@@ -91,6 +111,7 @@ export default function VoiceCaptureModal({
   // Cleanup on unmount
   useEffect(() => {
     return () => {
+      if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
       if (recognitionRef.current) {
         try {
           recognitionRef.current.stop();
@@ -104,6 +125,7 @@ export default function VoiceCaptureModal({
     setTranscript("");
     setInterimText("");
     setErrorMsg("");
+    shouldBeRecordingRef.current = true;
     try {
       recognitionRef.current.start();
     } catch (e) {
@@ -113,6 +135,7 @@ export default function VoiceCaptureModal({
 
   const stopRecording = () => {
     if (!recognitionRef.current) return;
+    shouldBeRecordingRef.current = false;
     try {
       recognitionRef.current.stop();
     } catch (e) {
@@ -313,7 +336,7 @@ export default function VoiceCaptureModal({
                   ) : (
                     <Check className="w-3.5 h-3.5" />
                   )}
-                  Save Note
+                  {shouldSaveToDb ? "Save" : "Send"}
                 </button>
               </div>
             </div>

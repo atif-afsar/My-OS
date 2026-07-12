@@ -226,7 +226,7 @@ export default function AssistantPage() {
       {/* Messages Scroll Area */}
       <div className="flex-1 overflow-y-auto border border-border bg-card/45 rounded-2xl p-4 flex flex-col gap-4 min-h-0 scrollbar-thin">
         <AnimatePresence initial={false}>
-          {messages.map((msg) => {
+          {messages.map((msg, idx) => {
             if (msg.sender === "system") {
               return (
                 <motion.div
@@ -265,10 +265,14 @@ export default function AssistantPage() {
                   className={`p-3.5 rounded-2xl text-xs leading-relaxed ${
                     isUser
                       ? "bg-primary text-primary-foreground font-medium rounded-tr-none"
-                      : "bg-secondary text-foreground rounded-tl-none border border-border/80 whitespace-pre-wrap"
+                      : "bg-secondary text-foreground rounded-tl-none border border-border/80"
                   }`}
                 >
-                  {msg.text}
+                  {isUser ? (
+                    msg.text
+                  ) : (
+                    <TypewriterText text={msg.text} enabled={idx === messages.length - 1} />
+                  )}
                 </div>
               </motion.div>
             );
@@ -354,4 +358,106 @@ export default function AssistantPage() {
       />
     </div>
   );
+}
+
+// 1. Simple Client-Side Markdown Parser
+function renderMarkdown(text: string) {
+  const lines = text.split("\n");
+
+  const elements = lines.map((line, idx) => {
+    let cleanLine = line.trim();
+
+    // Check for headers
+    if (cleanLine.startsWith("# ")) {
+      return (
+        <h1 key={idx} className="text-sm font-bold text-foreground mt-2 mb-1 border-b border-border/40 pb-1">
+          {cleanLine.replace("# ", "")}
+        </h1>
+      );
+    }
+    if (cleanLine.startsWith("## ")) {
+      return (
+        <h2 key={idx} className="text-xs font-bold text-foreground mt-2 mb-1">
+          {cleanLine.replace("## ", "")}
+        </h2>
+      );
+    }
+    if (cleanLine.startsWith("### ")) {
+      return (
+        <h3 key={idx} className="text-[11px] font-bold text-muted-foreground mt-1.5 mb-0.5">
+          {cleanLine.replace("### ", "")}
+        </h3>
+      );
+    }
+
+    // Check for bullet points
+    if (cleanLine.startsWith("* ") || cleanLine.startsWith("- ")) {
+      const content = cleanLine.substring(2);
+      // Parse bold tags ** inside content
+      const parts = content.split("**");
+      const renderedContent = parts.map((part, pIdx) => {
+        if (pIdx % 2 === 1) {
+          return <strong key={pIdx} className="font-bold text-foreground">{part}</strong>;
+        }
+        return part;
+      });
+      return (
+        <li key={idx} className="list-disc ml-4 mt-0.5 text-xs text-foreground/90">
+          {renderedContent}
+        </li>
+      );
+    }
+
+    // Divider
+    if (cleanLine === "---" || cleanLine === "***") {
+      return <div key={idx} className="border-t border-border my-2" />;
+    }
+
+    // Default paragraph / spacing
+    if (cleanLine === "") {
+      return <div key={idx} className="h-1" />;
+    }
+
+    // Parse bold tags ** inside normal line
+    const parts = line.split("**");
+    const renderedContent = parts.map((part, pIdx) => {
+      if (pIdx % 2 === 1) {
+        return <strong key={pIdx} className="font-bold text-foreground">{part}</strong>;
+      }
+      return part;
+    });
+
+    return <p key={idx} className="text-xs text-foreground/80 leading-relaxed my-0.5">{renderedContent}</p>;
+  });
+
+  return <div className="flex flex-col gap-0.5">{elements}</div>;
+}
+
+// 2. Typewriter Effect Component
+function TypewriterText({ text, enabled }: { text: string; enabled: boolean }) {
+  const [displayedText, setDisplayedText] = useState("");
+
+  useEffect(() => {
+    if (!enabled) {
+      setDisplayedText(text);
+      return;
+    }
+
+    const words = text.split(" ");
+    let index = 0;
+    setDisplayedText("");
+
+    const interval = setInterval(() => {
+      if (index < words.length) {
+        setDisplayedText((prev) => (prev ? prev + " " + words[index] : words[index]));
+        index++;
+      } else {
+        clearInterval(interval);
+      }
+    }, 10); // typing speed (10ms per word)
+
+    return () => clearInterval(interval);
+  }, [text, enabled]);
+
+  return <div className="markdown-body">{renderMarkdown(displayedText)}</div>;
 }

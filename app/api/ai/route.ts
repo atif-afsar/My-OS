@@ -16,25 +16,30 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Message is required." }, { status: 400 });
     }
 
-    // 1. Fetch system context from the database
     const [tasks, projects, knowledge, workouts, timeline] = await Promise.all([
       prisma.task.findMany({
         where: userId ? { userId } : undefined,
+        take: 30,
+        orderBy: { createdAt: "desc" },
         select: { id: true, title: true, status: true, priority: true, createdAt: true },
       }),
       prisma.project.findMany({
+        take: 15,
+        orderBy: { createdAt: "desc" },
         select: { id: true, title: true, status: true },
       }),
       prisma.knowledge.findMany({
+        take: 30,
+        orderBy: { createdAt: "desc" },
         select: { id: true, title: true, category: true, favorite: true },
       }),
       prisma.workout.findMany({
-        take: 10,
+        take: 8,
         orderBy: { date: "desc" },
         select: { id: true, exercise: true, sets: true, reps: true, weight: true, date: true },
       }),
       prisma.timelineEvent.findMany({
-        take: 10,
+        take: 8,
         orderBy: { createdAt: "desc" },
         select: { type: true, title: true, createdAt: true },
       }),
@@ -106,7 +111,7 @@ Examples:
 Always output ONLY valid JSON matching this schema. Do not write markdown code fences (\`\`\`json) in your actual output text, respond only with raw JSON.
 `;
 
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`;
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${apiKey}`;
     const geminiRes = await fetch(geminiUrl, {
       method: "POST",
       headers: {
@@ -121,6 +126,30 @@ Always output ONLY valid JSON matching this schema. Do not write markdown code f
         ],
         generationConfig: {
           responseMimeType: "application/json",
+          responseSchema: {
+            type: "OBJECT",
+            properties: {
+              message: {
+                type: "STRING",
+                description: "Conversational markdown text response to the user."
+              },
+              command: {
+                type: "OBJECT",
+                properties: {
+                  action: {
+                    type: "STRING",
+                    enum: ["CREATE_TASK", "CREATE_NOTE", "LOG_WORKOUT"]
+                  },
+                  data: {
+                    type: "OBJECT",
+                    description: "Data properties conforming to the chosen action type."
+                  }
+                },
+                required: ["action", "data"]
+              }
+            },
+            required: ["message"]
+          }
         },
       }),
     });
@@ -137,8 +166,18 @@ Always output ONLY valid JSON matching this schema. Do not write markdown code f
       return NextResponse.json({ error: "Empty response from Gemini." }, { status: 502 });
     }
 
-    // Parse the structured output
-    const parsed = JSON.parse(rawText.trim());
+    // Extract JSON block in case Gemini wraps it in markdown backticks or text
+    const extractJson = (text: string) => {
+      const start = text.indexOf("{");
+      const end = text.lastIndexOf("}");
+      if (start !== -1 && end !== -1 && end > start) {
+        return text.substring(start, end + 1);
+      }
+      return text;
+    };
+
+    const cleanedText = extractJson(rawText);
+    const parsed = JSON.parse(cleanedText);
     return NextResponse.json(parsed);
   } catch (error: any) {
     console.error("AI assistant route error", error);

@@ -34,6 +34,8 @@ export default function MindPage() {
 
   // States
   const [items, setItems] = useState<KnowledgeItem[]>([]);
+  const [learningTopics, setLearningTopics] = useState<any[]>([]);
+  const [focusedNoteId, setFocusedNoteId] = useState<string | null>(null);
   const [newTitle, setNewTitle] = useState("");
   const [newContent, setNewContent] = useState("");
   const [newCategory, setNewCategory] = useState<KnowledgeItem["category"]>("Philosophy");
@@ -43,8 +45,17 @@ export default function MindPage() {
   useEffect(() => {
     async function loadData() {
       try {
-        const res = await fetch("/api/knowledge");
-        const data = await res.json();
+        const [knowRes, learnRes] = await Promise.all([
+          fetch("/api/knowledge"),
+          fetch("/api/learning/topics")
+        ]);
+        const data = await knowRes.json();
+        const learnData = await learnRes.json();
+
+        if (Array.isArray(learnData)) {
+          setLearningTopics(learnData);
+        }
+
         if (Array.isArray(data)) {
           setItems(
             data.map((item: any) => ({
@@ -361,11 +372,23 @@ export default function MindPage() {
               {filteredItems.map((item) => (
                 <NoteCard
                   key={item.id}
+                  id={item.id}
                   category={item.category}
                   title={item.title}
                   content={item.content}
                   tags={item.tags}
                   favorite={item.favorite}
+                  allItems={items}
+                  learningTopics={learningTopics}
+                  isFocused={item.id === focusedNoteId}
+                  onSelectNote={(noteId) => {
+                    setFocusedNoteId(noteId);
+                    const matchedNote = items.find((i) => i.id === noteId);
+                    if (matchedNote) {
+                      setSelectedCategory("All");
+                      setSearchQuery("");
+                    }
+                  }}
                   onToggleFavorite={() => handleToggleFavorite(item.id)}
                   onDelete={() => handleDeleteItem(item.id)}
                 />

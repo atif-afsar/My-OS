@@ -50,19 +50,19 @@ export async function POST(request: Request) {
 Current time: ${new Date().toLocaleString()}
 
 USER TASKS:
-${tasks.map((t) => `- [${t.status}] ${t.title} (Priority: ${t.priority}, ID: ${t.id})`).join("\n")}
+${tasks.map((t: any) => `- [${t.status}] ${t.title} (Priority: ${t.priority}, ID: ${t.id})`).join("\n")}
 
 ACTIVE PROJECTS:
-${projects.map((p) => `- ${p.title} (Status: ${p.status}, ID: ${p.id})`).join("\n")}
+${projects.map((p: any) => `- ${p.title} (Status: ${p.status}, ID: ${p.id})`).join("\n")}
 
 SECOND BRAIN KNOWLEDGE NOTES:
-${knowledge.map((k) => `- ${k.title} [Category: ${k.category}]${k.favorite ? " (Favorite)" : ""} (ID: ${k.id})`).join("\n")}
+${knowledge.map((k: any) => `- ${k.title} [Category: ${k.category}]${k.favorite ? " (Favorite)" : ""} (ID: ${k.id})`).join("\n")}
 
 GYM WORKOUTS LOGS (Last 10):
-${workouts.map((w) => `- ${w.exercise}: ${w.sets} sets x ${w.reps} reps @ ${w.weight}kg (Date: ${new Date(w.date).toLocaleDateString()})`).join("\n")}
+${workouts.map((w: any) => `- ${w.exercise}: ${w.sets} sets x ${w.reps} reps @ ${w.weight}kg (Date: ${new Date(w.date).toLocaleDateString()})`).join("\n")}
 
 RECENT TIMELINE ACTIVITIES:
-${timeline.map((e) => `- [${e.type}] ${e.title} (${new Date(e.createdAt).toLocaleDateString()})`).join("\n")}
+${timeline.map((e: any) => `- [${e.type}] ${e.title} (${new Date(e.createdAt).toLocaleDateString()})`).join("\n")}
 `;
 
     // 2. Prepare Gemini Prompt

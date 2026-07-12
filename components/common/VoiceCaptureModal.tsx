@@ -45,8 +45,9 @@ export default function VoiceCaptureModal({
         return;
       }
 
+      const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
       const rec = new SpeechRecognition();
-      rec.continuous = true;
+      rec.continuous = !isMobileDevice;
       rec.interimResults = true;
       rec.lang = "en-US";
 
@@ -89,7 +90,7 @@ export default function VoiceCaptureModal({
       };
 
       rec.onend = () => {
-        if (shouldBeRecordingRef.current) {
+        if (shouldBeRecordingRef.current && !isMobileDevice) {
           accumulatedTextRef.current = latestTextRef.current ? latestTextRef.current + " " : "";
           if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
           restartTimerRef.current = setTimeout(() => {
@@ -103,6 +104,7 @@ export default function VoiceCaptureModal({
           }, 300);
         } else {
           setIsRecording(false);
+          shouldBeRecordingRef.current = false;
         }
       };
 

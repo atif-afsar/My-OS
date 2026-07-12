@@ -11,6 +11,13 @@ import {
   Trash2,
   ExternalLink,
   Tag,
+  Search,
+  Video,
+  Code,
+  Globe,
+  GraduationCap,
+  Layers,
+  FileCode2,
 } from "lucide-react";
 import PageHeader from "@/components/common/PageHeader";
 import LearningCard from "@/components/cards/LearningCard";
@@ -62,6 +69,9 @@ export default function LearningPage() {
   const [newBookmarkTitle, setNewBookmarkTitle] = useState("");
   const [newBookmarkUrl, setNewBookmarkUrl] = useState("");
   const [newBookmarkDesc, setNewBookmarkDesc] = useState("");
+  const [newBookmarkCategory, setNewBookmarkCategory] = useState("YouTube");
+  const [bookmarkSearch, setBookmarkSearch] = useState("");
+  const [bookmarkCategoryFilter, setBookmarkCategoryFilter] = useState("All");
 
   // Load Data
   useEffect(() => {
@@ -212,7 +222,7 @@ export default function LearningPage() {
           title: newBookmarkTitle,
           url: newBookmarkUrl,
           description: newBookmarkDesc,
-          category: "Resource",
+          category: newBookmarkCategory,
         }),
       });
       const data = await res.json();
@@ -221,6 +231,7 @@ export default function LearningPage() {
         setNewBookmarkTitle("");
         setNewBookmarkUrl("");
         setNewBookmarkDesc("");
+        setNewBookmarkCategory("YouTube");
       }
     } catch (err) {
       console.error(err);
@@ -426,87 +437,194 @@ export default function LearningPage() {
             )}
 
             {/* BOOKMARKS TAB */}
-            {activeTab === "bookmarks" && (
-              <motion.div
-                initial={{ opacity: 0, y: 5 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex flex-col gap-4"
-              >
-                <form onSubmit={handleAddBookmark} className="p-4 border border-border bg-card rounded-2xl flex flex-col gap-3">
-                  <h3 className="font-bold text-foreground text-sm">Add Resource Link</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* BOOKMARKS TAB */}
+            {activeTab === "bookmarks" && (() => {
+              const bookmarkCategories = [
+                "All",
+                "YouTube",
+                "GitHub",
+                "Books",
+                "Blogs",
+                "Research Papers",
+                "Courses",
+                "PDF",
+                "Documentation",
+                "General",
+              ];
+
+              const getBookmarkIcon = (cat: string) => {
+                const c = cat ? cat.toLowerCase() : "";
+                if (c.includes("youtube")) return Video;
+                if (c.includes("github")) return Code;
+                if (c.includes("book")) return BookOpen;
+                if (c.includes("blog")) return Globe;
+                if (c.includes("research")) return GraduationCap;
+                if (c.includes("course")) return Layers;
+                if (c.includes("pdf")) return FileText;
+                if (c.includes("documentation") || c.includes("doc")) return FileCode2;
+                return LinkIcon;
+              };
+
+              const getBookmarkColor = (cat: string) => {
+                const c = cat ? cat.toLowerCase() : "";
+                if (c.includes("youtube")) return "text-red-400 bg-red-500/10 border-red-500/20";
+                if (c.includes("github")) return "text-zinc-200 bg-zinc-500/10 border-zinc-500/20";
+                if (c.includes("book")) return "text-amber-400 bg-amber-500/10 border-amber-500/20";
+                if (c.includes("blog")) return "text-blue-400 bg-blue-500/10 border-blue-500/20";
+                if (c.includes("research")) return "text-emerald-400 bg-emerald-500/10 border-emerald-500/20";
+                if (c.includes("course")) return "text-pink-400 bg-pink-500/10 border-pink-500/20";
+                if (c.includes("pdf")) return "text-orange-400 bg-orange-500/10 border-orange-500/20";
+                if (c.includes("documentation") || c.includes("doc")) return "text-cyan-400 bg-cyan-500/10 border-cyan-500/20";
+                return "text-purple-400 bg-purple-500/10 border-purple-500/20";
+              };
+
+              const filteredBookmarks = bookmarks.filter((b) => {
+                const matchesCategory = bookmarkCategoryFilter === "All" || b.category === bookmarkCategoryFilter;
+                const matchesSearch =
+                  b.title.toLowerCase().includes(bookmarkSearch.toLowerCase()) ||
+                  b.url.toLowerCase().includes(bookmarkSearch.toLowerCase()) ||
+                  (b.description && b.description.toLowerCase().includes(bookmarkSearch.toLowerCase()));
+                return matchesCategory && matchesSearch;
+              });
+
+              return (
+                <motion.div
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex flex-col gap-4"
+                >
+                  <form onSubmit={handleAddBookmark} className="p-4 border border-border bg-card rounded-2xl flex flex-col gap-3">
+                    <h3 className="font-bold text-foreground text-sm">Add Resource to Library</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <input
+                        type="text"
+                        placeholder="Resource Title"
+                        value={newBookmarkTitle}
+                        onChange={(e) => setNewBookmarkTitle(e.target.value)}
+                        className="px-3 h-10 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
+                        required
+                      />
+                      <input
+                        type="url"
+                        placeholder="https://..."
+                        value={newBookmarkUrl}
+                        onChange={(e) => setNewBookmarkUrl(e.target.value)}
+                        className="px-3 h-10 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
+                        required
+                      />
+                      <select
+                        value={newBookmarkCategory}
+                        onChange={(e) => setNewBookmarkCategory(e.target.value)}
+                        className="px-3 h-10 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
+                      >
+                        <option value="YouTube">YouTube</option>
+                        <option value="GitHub">GitHub</option>
+                        <option value="Books">Books</option>
+                        <option value="Blogs">Blogs</option>
+                        <option value="Research Papers">Research Papers</option>
+                        <option value="Courses">Courses</option>
+                        <option value="PDF">PDF</option>
+                        <option value="Documentation">Documentation</option>
+                        <option value="General">General</option>
+                      </select>
+                    </div>
                     <input
                       type="text"
-                      placeholder="Resource / Page Title"
-                      value={newBookmarkTitle}
-                      onChange={(e) => setNewBookmarkTitle(e.target.value)}
+                      placeholder="Description summary..."
+                      value={newBookmarkDesc}
+                      onChange={(e) => setNewBookmarkDesc(e.target.value)}
                       className="px-3 h-10 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
-                      required
                     />
-                    <input
-                      type="url"
-                      placeholder="https://..."
-                      value={newBookmarkUrl}
-                      onChange={(e) => setNewBookmarkUrl(e.target.value)}
-                      className="px-3 h-10 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
-                      required
-                    />
-                  </div>
-                  <input
-                    type="text"
-                    placeholder="Description summary..."
-                    value={newBookmarkDesc}
-                    onChange={(e) => setNewBookmarkDesc(e.target.value)}
-                    className="px-3 h-10 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-primary text-foreground"
-                  />
-                  <button type="submit" className="h-10 bg-primary text-primary-foreground font-semibold text-sm rounded-lg hover:bg-primary/95 transition-colors cursor-pointer flex items-center justify-center gap-1.5">
-                    <Plus className="w-4 h-4" /> Add Bookmark URL
-                  </button>
-                </form>
+                    <button type="submit" className="h-10 bg-primary text-primary-foreground font-semibold text-sm rounded-lg hover:bg-primary/95 transition-colors cursor-pointer flex items-center justify-center gap-1.5">
+                      <Plus className="w-4 h-4" /> Add Resource Link
+                    </button>
+                  </form>
 
-                <div className="flex flex-col gap-2.5">
-                  {bookmarks.map((bookmark) => (
-                    <div key={bookmark.id} className="flex items-center justify-between p-4 rounded-xl border border-border bg-card hover:bg-secondary/50 transition-colors">
-                      <div className="flex-1 min-w-0 pr-4">
-                        <span className="text-[9px] px-2 py-0.5 rounded-full border border-border text-muted-foreground font-medium uppercase tracking-wider bg-background/50">
-                          {bookmark.category || "Resource"}
-                        </span>
-                        <h4 className="font-bold text-foreground text-sm truncate mt-2">{bookmark.title}</h4>
-                        {bookmark.description && (
-                          <p className="text-xs text-muted-foreground truncate mt-1">{bookmark.description}</p>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <a
-                          href={bookmark.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-muted-foreground hover:text-primary p-2 transition-colors flex items-center justify-center"
-                          aria-label="Open bookmark link"
-                        >
-                          <ExternalLink className="w-4 h-4" />
-                        </a>
-                        <button
-                          onClick={() => handleDeleteBookmark(bookmark.id)}
-                          className="text-muted-foreground hover:text-destructive p-2 transition-colors cursor-pointer"
-                          aria-label="Delete bookmark"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
+                  {/* Search and Category Filters */}
+                  <div className="flex flex-col gap-3 mt-1">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <input
+                        type="text"
+                        placeholder="Search resource library by title, description, or URL..."
+                        value={bookmarkSearch}
+                        onChange={(e) => setBookmarkSearch(e.target.value)}
+                        className="w-full pl-9 pr-4 h-10 bg-card border border-border rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-primary text-foreground placeholder:text-muted-foreground"
+                      />
                     </div>
-                  ))}
 
-                  {bookmarks.length === 0 && (
-                    <EmptyState
-                      icon={LinkIcon}
-                      title="No Bookmarks Saved"
-                      description="Save references, document URLs, and articles here."
-                    />
-                  )}
-                </div>
-              </motion.div>
-            )}
+                    <div className="flex gap-1.5 overflow-x-auto scrollbar-none pb-1">
+                      {bookmarkCategories.map((cat) => (
+                        <button
+                          key={cat}
+                          type="button"
+                          onClick={() => setBookmarkCategoryFilter(cat)}
+                          className={`text-[10px] font-bold px-3 py-1.5 rounded-full border transition-all whitespace-nowrap cursor-pointer ${
+                            bookmarkCategoryFilter === cat
+                              ? "bg-primary text-primary-foreground border-primary"
+                              : "bg-card text-muted-foreground border-border hover:text-foreground"
+                          }`}
+                        >
+                          {cat}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-2.5">
+                    {filteredBookmarks.map((bookmark) => {
+                      const BookmarkIcon = getBookmarkIcon(bookmark.category);
+                      const colorClass = getBookmarkColor(bookmark.category);
+                      
+                      return (
+                        <div key={bookmark.id} className="flex items-center justify-between p-4 rounded-xl border border-border bg-card hover:bg-secondary/50 transition-colors">
+                          <div className="flex items-start gap-3 flex-1 min-w-0 pr-4">
+                            <div className={`w-8 h-8 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 ${colorClass}`}>
+                              <BookmarkIcon className="w-4 h-4" />
+                            </div>
+                            <div className="min-w-0">
+                              <span className="text-[8px] font-extrabold uppercase tracking-wider block opacity-75">
+                                {bookmark.category || "General"}
+                              </span>
+                              <h4 className="font-bold text-foreground text-sm truncate mt-0.5">{bookmark.title}</h4>
+                              {bookmark.description && (
+                                <p className="text-xs text-muted-foreground truncate mt-0.5">{bookmark.description}</p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <a
+                              href={bookmark.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-muted-foreground hover:text-primary p-2 transition-colors flex items-center justify-center"
+                              aria-label="Open bookmark link"
+                            >
+                              <ExternalLink className="w-4 h-4" />
+                            </a>
+                            <button
+                              onClick={() => handleDeleteBookmark(bookmark.id)}
+                              className="text-muted-foreground hover:text-destructive p-2 transition-colors cursor-pointer"
+                              aria-label="Delete bookmark"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {filteredBookmarks.length === 0 && (
+                      <EmptyState
+                        icon={LinkIcon}
+                        title="No Resources Found"
+                        description="Capture study links, books, or documentation references matching your filter."
+                      />
+                    )}
+                  </div>
+                </motion.div>
+              );
+            })()}
           </>
         )}
       </div>

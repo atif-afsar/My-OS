@@ -31,6 +31,8 @@ export default function VoiceCaptureModal({
   const recognitionRef = useRef<any>(null);
   const shouldBeRecordingRef = useRef(false);
   const restartTimerRef = useRef<any>(null);
+  const accumulatedTextRef = useRef("");
+  const latestTextRef = useRef("");
 
   // Initialize Speech Recognition
   useEffect(() => {
@@ -49,28 +51,27 @@ export default function VoiceCaptureModal({
       rec.lang = "en-US";
 
       rec.onstart = () => {
-        setIsRecording(true);
         shouldBeRecordingRef.current = true;
         setErrorMsg("");
       };
 
       rec.onresult = (event: any) => {
-        let finalTrans = "";
-        let interimTrans = "";
+        let sessionFinal = "";
+        let sessionInterim = "";
 
-        for (let i = event.resultIndex; i < event.results.length; ++i) {
+        for (let i = 0; i < event.results.length; ++i) {
           const text = event.results[i][0].transcript;
           if (event.results[i].isFinal) {
-            finalTrans += text + " ";
+            sessionFinal += text + " ";
           } else {
-            interimTrans += text;
+            sessionInterim += text;
           }
         }
 
-        if (finalTrans) {
-          setTranscript((prev) => prev + finalTrans);
-        }
-        setInterimText(interimTrans);
+        const combinedText = (accumulatedTextRef.current + sessionFinal).trim();
+        setTranscript(combinedText);
+        setInterimText(sessionInterim);
+        latestTextRef.current = combinedText;
       };
 
       rec.onerror = (event: any) => {
@@ -78,29 +79,30 @@ export default function VoiceCaptureModal({
         if (event.error === "not-allowed") {
           setErrorMsg("Microphone access denied. Please check permissions.");
           shouldBeRecordingRef.current = false;
+          setIsRecording(false);
         } else if (event.error === "aborted" || event.error === "no-speech") {
-          // Silent errors: aborted or no-speech are normal, don't show red warning
-          console.log(`Speech recognition stopped: ${event.error}`);
+          console.log(`Speech recognition stopped silently: ${event.error}`);
         } else {
           setErrorMsg(`Error occurred: ${event.error}`);
+          setIsRecording(false);
         }
-        setIsRecording(false);
       };
 
       rec.onend = () => {
-        setIsRecording(false);
         if (shouldBeRecordingRef.current) {
+          accumulatedTextRef.current = latestTextRef.current ? latestTextRef.current + " " : "";
           if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
           restartTimerRef.current = setTimeout(() => {
             if (shouldBeRecordingRef.current) {
               try {
                 rec.start();
-                setIsRecording(true);
               } catch (e) {
                 console.error("Auto-restart speech recognition failed", e);
               }
             }
-          }, 300); // 300ms debounce delay to release previous resource
+          }, 300);
+        } else {
+          setIsRecording(false);
         }
       };
 
@@ -125,7 +127,10 @@ export default function VoiceCaptureModal({
     setTranscript("");
     setInterimText("");
     setErrorMsg("");
+    accumulatedTextRef.current = "";
+    latestTextRef.current = "";
     shouldBeRecordingRef.current = true;
+    setIsRecording(true);
     try {
       recognitionRef.current.start();
     } catch (e) {
@@ -136,6 +141,7 @@ export default function VoiceCaptureModal({
   const stopRecording = () => {
     if (!recognitionRef.current) return;
     shouldBeRecordingRef.current = false;
+    setIsRecording(false);
     try {
       recognitionRef.current.stop();
     } catch (e) {

@@ -43,9 +43,18 @@ export default function DashboardPage() {
   const [continueTopic, setContinueTopic] = useState<LearningTopic | null>(null);
   const [reviewCompleted, setReviewCompleted] = useState(false);
   const [weeklyReviewCompleted, setWeeklyReviewCompleted] = useState(false);
+  const [showBriefingBanner, setShowBriefingBanner] = useState(false);
 
   // Focus Timer Elapsed state
   const [elapsedText, setElapsedText] = useState("");
+
+  // Morning briefing visibility trigger
+  useEffect(() => {
+    const hr = new Date().getHours();
+    if (hr >= 5 && hr < 12) {
+      setShowBriefingBanner(true);
+    }
+  }, []);
 
   // Load Data
   useEffect(() => {
@@ -228,6 +237,33 @@ export default function DashboardPage() {
           </motion.div>
         </Link>
       </div>
+
+      {/* Morning Briefing Banner */}
+      {showBriefingBanner && (
+        <motion.div
+          initial={{ opacity: 0, y: -5 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-4 rounded-2xl border border-amber-500/20 bg-amber-500/5 text-amber-400 flex justify-between items-center shadow-xs"
+        >
+          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+            <div className="w-8 h-8 rounded-full flex items-center justify-center border bg-amber-500/10 border-amber-500/25 text-amber-400 animate-pulse shrink-0">
+              <Sun className="w-4 h-4 animate-spin-slow" />
+            </div>
+            <div className="min-w-0">
+              <h4 className="text-xs font-bold text-foreground">Morning Briefing Ready</h4>
+              <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
+                Prepare your day with quotes, routines, and active subjects.
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/briefing"
+            className="shrink-0 text-xs px-3.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-black font-bold transition-all cursor-pointer shadow-xs"
+          >
+            Start
+          </Link>
+        </motion.div>
+      )}
 
       {/* Daily Review Reminder Panel */}
       <motion.div

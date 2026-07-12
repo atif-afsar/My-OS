@@ -274,68 +274,43 @@ export default function DashboardPage() {
         <motion.div
           initial={{ opacity: 0, y: -5 }}
           animate={{ opacity: 1, y: 0 }}
-          className="p-4 rounded-2xl border border-indigo-500/20 bg-indigo-500/5 text-indigo-400 flex justify-between items-center shadow-xs"
+          className={`p-4 rounded-2xl border transition-all flex justify-between items-center shadow-xs ${
+            reviewCompleted
+              ? "border-emerald-500/20 bg-emerald-500/5 text-emerald-400"
+              : "border-indigo-500/20 bg-indigo-500/5 text-indigo-400 hover:bg-indigo-500/10"
+          }`}
         >
           <div className="flex items-center gap-2.5 min-w-0 flex-1">
-            <div className="w-8 h-8 rounded-full flex items-center justify-center border bg-indigo-500/10 border-indigo-500/25 text-indigo-400 animate-pulse shrink-0">
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center border shrink-0 ${
+              reviewCompleted 
+                ? "bg-emerald-500/10 border-emerald-500/25 text-emerald-400"
+                : "bg-indigo-500/10 border-indigo-500/25 text-indigo-400 animate-pulse"
+            }`}>
               <Moon className="w-4 h-4 shrink-0" />
             </div>
             <div className="min-w-0">
-              <h4 className="text-xs font-bold text-foreground">Evening Shutdown Ready</h4>
+              <h4 className="text-xs font-bold text-foreground">
+                {reviewCompleted ? "Evening Shutdown Complete" : "Evening Shutdown Ready"}
+              </h4>
               <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
-                Clear pending tasks, plan tomorrow, and log reflections.
+                {reviewCompleted ? "Great job reflecting and preparing for tomorrow!" : "Clear pending tasks, plan tomorrow, and log reflections."}
               </p>
             </div>
           </div>
-          <Link
-            href="/shutdown"
-            className="shrink-0 text-xs px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold transition-all cursor-pointer shadow-xs"
-          >
-            Start
-          </Link>
+          {!reviewCompleted ? (
+            <Link
+              href="/review"
+              className="shrink-0 text-xs px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold transition-all cursor-pointer shadow-xs"
+            >
+              Start
+            </Link>
+          ) : (
+            <span className="text-xs font-semibold px-2.5 py-1 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              Complete
+            </span>
+          )}
         </motion.div>
       )}
-
-      {/* Daily Review Reminder Panel */}
-      <motion.div
-        initial={{ opacity: 0, y: 5 }}
-        animate={{ opacity: 1, y: 0 }}
-        className={`p-4 rounded-2xl border transition-all flex justify-between items-center shadow-xs ${
-          reviewCompleted
-            ? "border-emerald-500/20 bg-emerald-500/5 text-emerald-400"
-            : "border-pink-500/20 bg-pink-500/5 text-pink-400 hover:bg-pink-500/10"
-        }`}
-      >
-        <div className="flex items-center gap-2.5 min-w-0 flex-1">
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center border shrink-0 ${
-            reviewCompleted 
-              ? "bg-emerald-500/10 border-emerald-500/25 text-emerald-400"
-              : "bg-pink-500/10 border-pink-500/25 text-pink-400 animate-pulse"
-          }`}>
-            <ClipboardList className="w-4 h-4" />
-          </div>
-          <div className="min-w-0">
-            <h4 className="text-xs font-bold text-foreground">
-              {reviewCompleted ? "Daily Review Logged" : "Nightly Reflection Pending"}
-            </h4>
-            <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
-              {reviewCompleted ? "Great job reflecting on your progress today!" : "Take 1 minute to reflect on your day and set priorities."}
-            </p>
-          </div>
-        </div>
-        {!reviewCompleted ? (
-          <Link
-            href="/review"
-            className="shrink-0 text-xs px-3.5 py-1.5 rounded-lg bg-pink-500 hover:bg-pink-600 text-white font-semibold transition-all cursor-pointer shadow-xs"
-          >
-            Start
-          </Link>
-        ) : (
-          <span className="text-xs font-semibold px-2.5 py-1 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-            Complete
-          </span>
-        )}
-      </motion.div>
 
       {/* Weekly Review Reminder Panel */}
       {(() => {

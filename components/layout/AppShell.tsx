@@ -78,11 +78,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     { label: "Gym", href: "/gym", icon: Dumbbell, color: "text-orange-500" },
     { label: "Mind", href: "/mind", icon: Brain, color: "text-purple-500" },
     { label: "Timeline", href: "/timeline", icon: Clock, color: "text-slate-400" },
-    { label: "Daily Review", href: "/review", icon: FileText, color: "text-pink-400" },
     { label: "Weekly Review", href: "/review/weekly", icon: ClipboardList, color: "text-violet-500" },
     { label: "Life Heatmap", href: "/heatmap", icon: Calendar, color: "text-orange-400" },
     { label: "Morning Briefing", href: "/briefing", icon: Sun, color: "text-amber-400" },
-    { label: "Evening Shutdown", href: "/shutdown", icon: Moon, color: "text-indigo-400" },
+    { label: "Evening Shutdown", href: "/review", icon: Moon, color: "text-indigo-400" },
     { label: "AI Copilot", href: "/assistant", icon: Sparkles, color: "text-violet-400" },
     { label: "Settings", href: "/settings", icon: Settings, color: "text-slate-400" },
   ];

@@ -42,6 +42,7 @@ export default function DashboardPage() {
   const [recentTimeline, setRecentTimeline] = useState<TimelineEvent[]>([]);
   const [continueTopic, setContinueTopic] = useState<LearningTopic | null>(null);
   const [reviewCompleted, setReviewCompleted] = useState(false);
+  const [weeklyReviewCompleted, setWeeklyReviewCompleted] = useState(false);
 
   // Focus Timer Elapsed state
   const [elapsedText, setElapsedText] = useState("");
@@ -90,7 +91,8 @@ export default function DashboardPage() {
           setContinueTopic(active);
         }
         if (Array.isArray(knowledgeData)) {
-          const todayLabel = new Date().toLocaleDateString("en-US", {
+          const todayDate = new Date();
+          const todayLabel = todayDate.toLocaleDateString("en-US", {
             day: "numeric",
             month: "short",
             year: "numeric",
@@ -98,6 +100,15 @@ export default function DashboardPage() {
           const expectedReviewTitle = `Daily Review - ${todayLabel}`;
           const done = knowledgeData.some((item: any) => item.title === expectedReviewTitle);
           setReviewCompleted(done);
+
+          // Check weekly review
+          const sevenDaysAgoDate = new Date();
+          sevenDaysAgoDate.setDate(todayDate.getDate() - 7);
+          const startLabel = sevenDaysAgoDate.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+          const endLabel = todayDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+          const expectedWeeklyTitle = `Weekly Review - Week of ${startLabel} - ${endLabel}`;
+          const weeklyDone = knowledgeData.some((item: any) => item.title === expectedWeeklyTitle);
+          setWeeklyReviewCompleted(weeklyDone);
         }
       } catch (err) {
         console.error("Failed to load dashboard data", err);
@@ -258,6 +269,56 @@ export default function DashboardPage() {
           </span>
         )}
       </motion.div>
+
+      {/* Weekly Review Reminder Panel */}
+      {(() => {
+        const currentDay = new Date().getDay();
+        const isWeekend = currentDay === 0 || currentDay === 6; // Sunday = 0, Saturday = 6
+        const showWeeklyReview = isWeekend || !weeklyReviewCompleted;
+        if (!showWeeklyReview) return null;
+
+        return (
+          <motion.div
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={`p-4 rounded-2xl border transition-all flex justify-between items-center shadow-xs ${
+              weeklyReviewCompleted
+                ? "border-emerald-500/20 bg-emerald-500/5 text-emerald-400"
+                : "border-violet-500/20 bg-violet-500/5 text-violet-400 hover:bg-violet-500/10"
+            }`}
+          >
+            <div className="flex items-center gap-2.5 min-w-0 flex-1">
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center border shrink-0 ${
+                weeklyReviewCompleted 
+                  ? "bg-emerald-500/10 border-emerald-500/25 text-emerald-400"
+                  : "bg-violet-500/10 border-violet-500/25 text-violet-400 animate-pulse"
+              }`}>
+                <ClipboardList className="w-4 h-4" />
+              </div>
+              <div className="min-w-0">
+                <h4 className="text-xs font-bold text-foreground">
+                  {weeklyReviewCompleted ? "Weekly Review Logged" : "Weekly Reflection Pending"}
+                </h4>
+                <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
+                  {weeklyReviewCompleted ? "Great job reflecting on your progress this week!" : "Review your week, track consistency, and prep for what's next."}
+                </p>
+              </div>
+            </div>
+            {!weeklyReviewCompleted ? (
+              <Link
+                href="/review/weekly"
+                className="shrink-0 text-xs px-3.5 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-700 text-white font-semibold transition-all cursor-pointer shadow-xs"
+              >
+                Start
+              </Link>
+            ) : (
+              <span className="text-xs font-semibold px-2.5 py-1 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                Complete
+              </span>
+            )}
+          </motion.div>
+        );
+      })()}
 
       {/* Current Focus Panel (Ultra-minimal & Sleek) */}
       {currentFocusTask && (

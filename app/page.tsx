@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Clock, Calendar, CheckSquare, Layers, ArrowUpRight, Play, BookOpen, Check, ClipboardList, Sparkles } from "lucide-react";
+import { Clock, Calendar, CheckSquare, Layers, ArrowUpRight, Play, BookOpen, Check, ClipboardList, Sparkles, Moon } from "lucide-react";
 import Link from "next/link";
 import LoadingSkeleton from "@/components/common/LoadingSkeleton";
 import ProgressCard from "@/components/cards/ProgressCard";
@@ -44,15 +44,19 @@ export default function DashboardPage() {
   const [reviewCompleted, setReviewCompleted] = useState(false);
   const [weeklyReviewCompleted, setWeeklyReviewCompleted] = useState(false);
   const [showBriefingBanner, setShowBriefingBanner] = useState(false);
+  const [showShutdownBanner, setShowShutdownBanner] = useState(false);
 
   // Focus Timer Elapsed state
   const [elapsedText, setElapsedText] = useState("");
 
-  // Morning briefing visibility trigger
+  // Morning/Evening banner visibility triggers
   useEffect(() => {
     const hr = new Date().getHours();
     if (hr >= 5 && hr < 12) {
       setShowBriefingBanner(true);
+    }
+    if (hr >= 20 || hr < 5) {
+      setShowShutdownBanner(true);
     }
   }, []);
 
@@ -259,6 +263,33 @@ export default function DashboardPage() {
           <Link
             href="/briefing"
             className="shrink-0 text-xs px-3.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-black font-bold transition-all cursor-pointer shadow-xs"
+          >
+            Start
+          </Link>
+        </motion.div>
+      )}
+
+      {/* Evening Shutdown Banner */}
+      {showShutdownBanner && (
+        <motion.div
+          initial={{ opacity: 0, y: -5 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-4 rounded-2xl border border-indigo-500/20 bg-indigo-500/5 text-indigo-400 flex justify-between items-center shadow-xs"
+        >
+          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+            <div className="w-8 h-8 rounded-full flex items-center justify-center border bg-indigo-500/10 border-indigo-500/25 text-indigo-400 animate-pulse shrink-0">
+              <Moon className="w-4 h-4 shrink-0" />
+            </div>
+            <div className="min-w-0">
+              <h4 className="text-xs font-bold text-foreground">Evening Shutdown Ready</h4>
+              <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
+                Clear pending tasks, plan tomorrow, and log reflections.
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/shutdown"
+            className="shrink-0 text-xs px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold transition-all cursor-pointer shadow-xs"
           >
             Start
           </Link>

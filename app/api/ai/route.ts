@@ -12,7 +12,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { message, userId } = await request.json();
+    const { message, userId, localTime, timeZone } = await request.json();
     if (!message) {
       return NextResponse.json({ error: "Message is required." }, { status: 400 });
     }
@@ -46,9 +46,24 @@ export async function POST(request: Request) {
       }),
     ]);
 
+    // Helper to format dates cleanly using the user's local timezone if provided
+    const formatTimezoneDate = (dateVal: Date | string, userTimezone?: string) => {
+      try {
+        const d = new Date(dateVal);
+        if (userTimezone) {
+          return d.toLocaleString("en-US", { timeZone: userTimezone });
+        }
+        return d.toLocaleString();
+      } catch (e) {
+        return new Date(dateVal).toLocaleString();
+      }
+    };
+
+    const userLocalTimeStr = localTime ? formatTimezoneDate(localTime, timeZone) : new Date().toLocaleString();
+
     // Format context text
     const context = `
-Current time: ${new Date().toLocaleString()}
+Current time (User's timezone: ${timeZone || "UTC"}): ${userLocalTimeStr}
 
 USER TASKS:
 ${tasks.map((t: any) => `- [${t.status}] ${t.title} (Priority: ${t.priority}, ID: ${t.id})`).join("\n")}
@@ -60,10 +75,10 @@ SECOND BRAIN KNOWLEDGE NOTES:
 ${knowledge.map((k: any) => `- ${k.title} [Category: ${k.category}]${k.favorite ? " (Favorite)" : ""} (ID: ${k.id})`).join("\n")}
 
 GYM WORKOUTS LOGS (Last 10):
-${workouts.map((w: any) => `- ${w.exercise}: ${w.sets} sets x ${w.reps} reps @ ${w.weight}kg (Date: ${new Date(w.date).toLocaleDateString()})`).join("\n")}
+${workouts.map((w: any) => `- ${w.exercise}: ${w.sets} sets x ${w.reps} reps @ ${w.weight}kg (Date: ${formatTimezoneDate(w.date, timeZone)})`).join("\n")}
 
 RECENT TIMELINE ACTIVITIES:
-${timeline.map((e: any) => `- [${e.type}] ${e.title} (${new Date(e.createdAt).toLocaleDateString()})`).join("\n")}
+${timeline.map((e: any) => `- [${e.type}] ${e.title} (${formatTimezoneDate(e.createdAt, timeZone)})`).join("\n")}
 `;
 
     // 2. Prepare Gemini Prompt

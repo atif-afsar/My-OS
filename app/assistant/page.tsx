@@ -163,6 +163,8 @@ export default function AssistantPage() {
         body: JSON.stringify({
           message: textToSend,
           userId: user?.id,
+          localTime: new Date().toString(),
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         }),
       });
 

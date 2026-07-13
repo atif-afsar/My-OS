@@ -49,6 +49,11 @@ export default function MorningBriefingPage() {
   const [continueTopic, setContinueTopic] = useState<LearningTopic | null>(null);
   const [quote, setQuote] = useState(STOIC_QUOTES[0]);
   const [submitting, setSubmitting] = useState(false);
+  const [weatherInfo, setWeatherInfo] = useState({
+    temp: "28°C",
+    condition: "Partly Cloudy",
+    location: "Aligarh, IN",
+  });
 
   const today = new Date();
   const localDayOfWeek = today.getDay();
@@ -115,6 +120,59 @@ export default function MorningBriefingPage() {
         // Choose quote randomly
         const randQ = STOIC_QUOTES[Math.floor(Math.random() * STOIC_QUOTES.length)];
         setQuote(randQ);
+
+        // Fetch local weather dynamically if geolocation is available
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            async (pos) => {
+              const { latitude, longitude } = pos.coords;
+              try {
+                // Fetch current weather from Open-Meteo
+                const weatherRes = await fetch(
+                  `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weather_code`
+                );
+                const weatherData = await weatherRes.json();
+                const tempVal = Math.round(weatherData.current.temperature_2m);
+                const code = weatherData.current.weather_code;
+
+                let cond = "Clear Sky";
+                if (code >= 1 && code <= 3) cond = "Partly Cloudy";
+                else if (code >= 45 && code <= 48) cond = "Foggy";
+                else if (code >= 51 && code <= 67) cond = "Rainy";
+                else if (code >= 71 && code <= 77) cond = "Snowy";
+                else if (code >= 80 && code <= 82) cond = "Showers";
+                else if (code >= 95 && code <= 99) cond = "Thunderstorm";
+
+                // Reverse geocode to get city name
+                let loc = "Aligarh, IN";
+                try {
+                  const geoRes = await fetch(
+                    `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`,
+                    { headers: { "Accept-Language": "en" } }
+                  );
+                  const geoData = await geoRes.json();
+                  const address = geoData.address;
+                  const city = address.city || address.town || address.village || address.suburb || "Aligarh";
+                  const countryCode = address.country_code ? address.country_code.toUpperCase() : "IN";
+                  loc = `${city}, ${countryCode}`;
+                } catch (geoErr) {
+                  console.error("Geocoding failed", geoErr);
+                }
+
+                setWeatherInfo({
+                  temp: `${tempVal}°C`,
+                  condition: cond,
+                  location: loc,
+                });
+              } catch (err) {
+                console.error("Weather fetch failed", err);
+              }
+            },
+            (err) => {
+              console.error("Geolocation failed", err);
+            }
+          );
+        }
 
         // Fetch Tasks and Learning Topics
         const [tasksRes, learnRes] = await Promise.all([
@@ -234,11 +292,11 @@ export default function MorningBriefingPage() {
             </div>
             <div>
               <span className="text-[10px] text-muted-foreground uppercase font-bold">Weather Outlook</span>
-              <h4 className="text-sm font-bold text-foreground mt-0.5">Partly Cloudy, 28°C</h4>
+              <h4 className="text-sm font-bold text-foreground mt-0.5">{weatherInfo.condition}, {weatherInfo.temp}</h4>
             </div>
           </div>
           <span className="text-[10px] px-2 py-0.5 rounded bg-secondary text-muted-foreground font-semibold border border-border">
-            Islamabad, PK
+            {weatherInfo.location}
           </span>
         </motion.div>
 

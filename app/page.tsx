@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Clock, Calendar, CheckSquare, Layers, ArrowUpRight, Play, BookOpen, Check, ClipboardList, Sparkles, Moon } from "lucide-react";
+import { Clock, Calendar, CheckSquare, Layers, ArrowUpRight, Play, BookOpen, Check, ClipboardList, Sparkles, Moon, Sun } from "lucide-react";
 import Link from "next/link";
 import LoadingSkeleton from "@/components/common/LoadingSkeleton";
 import ProgressCard from "@/components/cards/ProgressCard";
